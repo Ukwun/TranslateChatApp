@@ -5,16 +5,11 @@ import { useThemeStore } from "../store/useThemeStore";
 import { useTranslation } from "react-i18next";
 // Use backend URL for socket.io in production, relative path in development
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
-const socket = io(
-  window.location.hostname === "localhost"
-    ? "/"
-    : BACKEND_URL,
-  {
-    withCredentials: true,
-    path: "/socket.io",
-    transports: ["websocket", "polling"],
-  }
-);
+const socket = io(BACKEND_URL, {
+  withCredentials: true,
+  path: "/socket.io",
+  transports: ["polling"], // Use only polling for Vercel compatibility
+});
 
 export default function ChatBox({ user, currentChatUser }) {
   const { t } = useTranslation();
