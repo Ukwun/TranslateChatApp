@@ -35,6 +35,7 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:5174",
+  "https://translate-chat-app-frontend-39ws.vercel.app",
 ];
 
 const corsOptions = {
@@ -51,7 +52,12 @@ app.use(cors(corsOptions));
 /* -------------------------- SOCKET.IO SETUP ------------------------- */
 
 const io = new Server(server, {
-  cors: corsOptions, // Reuse the same CORS options
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  },
 });
 
 // Attach io to req so it can be accessed in controllers
