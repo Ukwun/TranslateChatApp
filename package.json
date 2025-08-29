@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "workspaces": [
+    "Frontend",
+    "Backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix Frontend\" \"npm run dev --prefix Backend\""
+  },
+  "dependencies": {
+    "autoprefixer": "^10.4.21",
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
