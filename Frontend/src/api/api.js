@@ -3,7 +3,8 @@ import axios from 'axios';
 // Create an Axios instance with a base URL.
 // All requests made with this instance will be prefixed with '/api'.
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_BACKEND_URL, // set in Netlify env
+  withCredentials: true
 });
 
 // Add a request interceptor to include the token in every request.

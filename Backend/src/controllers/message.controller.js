@@ -53,29 +53,16 @@ export const sendMessage = async (req, res) => {
       imageUrl = uploadResponse.secure_url;
     }
 
-    // Get receiver's language and map to readable name for OpenAI
+    // Get receiver's language
     const receiver = await User.findById(receiverId);
-    const langMap = {
-      en: "English",
-      ko: "Korean",
-      fr: "French",
-      es: "Spanish",
-      de: "German",
-      zh: "Chinese",
-      ja: "Japanese",
-      ru: "Russian",
-      it: "Italian"
-    };
-    const targetLangCode = receiver?.language || "en";
-    const targetLangName = langMap[targetLangCode] || "English";
+    const targetLang = receiver?.language || "en";
 
-    // Always translate text to receiver's preferred language
+    // Translate text if needed
     let translatedText = text;
     let originalText = text;
-    if (text && targetLangCode) {
+    if (text && targetLang && targetLang !== "en") {
       try {
-        translatedText = await translateText(text, targetLangName, process.env.OPENAI_API_KEY);
-        console.log(`Translation result for '${text}' to '${targetLangName}':`, translatedText);
+        translatedText = await translateText(text, targetLang, process.env.OPENAI_API_KEY);
       } catch (err) {
         console.error("Translation error:", err.message);
       }

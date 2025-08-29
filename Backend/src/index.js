@@ -7,24 +7,7 @@ import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const uri = process.env.MONGO_URI;
-
-if (!uri) {
-  console.error("❌ MONGO_URI is missing! Check your environment variables.");
-  process.exit(1);
-}
-
-mongoose.connect(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✅ MongoDB connected"))
-.catch((err) => console.error("❌ MongoDB connection failed:", err));
+import connectDB from "./lib/db.js";
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 
@@ -52,13 +35,12 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:5174",
-  "https://ukwunapp.netlify.app/",
 ];
 
 const corsOptions = {
-  origin: function (origin, cb) {
-    // Allow all origins for socket.io polling transport
-    if (!origin || allowedOrigins.includes(origin) || origin?.includes('netlify.app')) return cb(null, true);
+  origin(origin, cb) {
+    // allow requests with no origin (like curl/postman) or whitelisted origins
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
@@ -69,12 +51,7 @@ app.use(cors(corsOptions));
 /* -------------------------- SOCKET.IO SETUP ------------------------- */
 
 const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
-  },
+  cors: corsOptions, // Reuse the same CORS options
 });
 
 // Attach io to req so it can be accessed in controllers
