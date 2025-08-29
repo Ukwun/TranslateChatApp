@@ -11,7 +11,7 @@ dotenv.config();
 
 import connectDB from "./lib/db.js";
 import authRoutes from "./routes/auth.routes.js";
-import messageRoutes from "./routes/message.route.js";
+import messageRoutes from "./routes/message.routes.js";
 
 const app = express();
 const server = createServer(app);
