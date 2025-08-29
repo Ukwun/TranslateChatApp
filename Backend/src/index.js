@@ -107,7 +107,7 @@ app.get("/", (_req, res) => {
 });
 
 // API routes
-app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
 /* ----------------------------- 404 HANDLER ---------------------------- */
