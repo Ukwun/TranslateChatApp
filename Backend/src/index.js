@@ -39,9 +39,9 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin(origin, cb) {
-    // allow requests with no origin (like curl/postman) or whitelisted origins
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+  origin: function (origin, cb) {
+    // Allow all origins for socket.io polling transport
+    if (!origin || allowedOrigins.includes(origin) || origin?.includes('vercel.app')) return cb(null, true);
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
