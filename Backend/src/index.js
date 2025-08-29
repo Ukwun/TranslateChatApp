@@ -10,7 +10,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import connectDB from "./lib/db.js";
-import authRoutes from "./routes/auth.route.js";
+import authRoutes from "./routes/auth.routes.js";
 import messageRoutes from "./routes/message.route.js";
 
 const app = express();
@@ -98,7 +98,7 @@ app.get("/", (_req, res) => {
 });
 
 // API routes
-app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 
 /* ----------------------------- 404 HANDLER ---------------------------- */
