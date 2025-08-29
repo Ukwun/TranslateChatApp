@@ -4,19 +4,19 @@ import daisyui from "daisyui";
 export default {
 	content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
 	theme: {
-		extend: {},
+		extend: {
+			screens: {
+				'sm': '480px', // phones
+				'md': '768px', // tablets
+				'lg': '1024px', // laptops
+				'xl': '1280px', // desktops
+				'2xl': '1536px', // large screens
+			},
+		},
 	},
 	plugins: [daisyui],
-
 	daisyui: {
 		themes: [
-	screens: {
-		'sm': '480px', // phones
-		'md': '768px', // tablets
-		'lg': '1024px', // laptops
-		'xl': '1280px', // desktops
-		'2xl': '1536px', // large screens
-	},
 			"light",
 			"dark",
 			"cupcake",
