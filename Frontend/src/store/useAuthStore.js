@@ -43,7 +43,7 @@ signup: async (inputs) => {
 	};
   console.log("Attempting to sign up with payload:", payload); // For debugging
   try {
-    const res = await api.post("/auth/signup", payload);
+	const res = await api.post("/auth/signup", payload);
 
     const data = res.data; // Assuming a flat response like { token, ...user }
     if (data.error) throw new Error(data.error);
@@ -74,7 +74,7 @@ signup: async (inputs) => {
 			set({ isLoggingIn: true });
 			const toastId = toast.loading("Logging in...");
 			try {
-				const res = await axios.post("https://translatechatapp.onrender.com/auth/login", credentials);
+				const res = await api.post("/auth/login", credentials);
 				const data = res.data;
 
 				const { token, ...user } = data;
