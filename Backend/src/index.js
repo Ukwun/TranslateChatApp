@@ -35,13 +35,13 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:5174",
-  "https://translate-chat-app-frontend-39ws.vercel.app",
+  "https://ukwunapp.netlify.app/",
 ];
 
 const corsOptions = {
   origin: function (origin, cb) {
     // Allow all origins for socket.io polling transport
-    if (!origin || allowedOrigins.includes(origin) || origin?.includes('vercel.app')) return cb(null, true);
+    if (!origin || allowedOrigins.includes(origin) || origin?.includes('netlify.app')) return cb(null, true);
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
