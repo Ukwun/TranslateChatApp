@@ -3,8 +3,17 @@ import io from "socket.io-client";
 import toast from "react-hot-toast";
 import { useThemeStore } from "../store/useThemeStore";
 import { useTranslation } from "react-i18next";
-// Use relative path for Vite proxy and specify socket.io path
-const socket = io("/", { withCredentials: true, path: "/socket.io" });
+// Use backend URL for socket.io in production, relative path in development
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+const socket = io(
+  typeof window !== "undefined" && window.location.hostname === "localhost"
+    ? "/"
+    : BACKEND_URL,
+  {
+    withCredentials: true,
+    path: "/socket.io",
+  }
+);
 
 export default function ChatBox({ user, currentChatUser }) {
   const { t } = useTranslation();
