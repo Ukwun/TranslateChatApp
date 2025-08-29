@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import api from "../api/api"; // Use the custom api instance
+import axios from "axios";
 
 const getInitialAuthUser = () => {
 	try {
