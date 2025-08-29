@@ -73,7 +73,7 @@ signup: async (inputs) => {
 			set({ isLoggingIn: true });
 			const toastId = toast.loading("Logging in...");
 			try {
-				const res = await api.post("/auth/login", credentials);
+				const res = await axios.post("https://translatechatapp.onrender.com/auth/login", credentials);
 				const data = res.data;
 
 				const { token, ...user } = data;
