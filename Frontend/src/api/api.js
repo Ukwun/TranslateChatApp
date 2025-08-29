@@ -3,7 +3,7 @@ import axios from 'axios';
 // Create an Axios instance with a base URL.
 // All requests made with this instance will be prefixed with '/api'.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL, // set in Netlify env
+  baseURL: import.meta.env.VITE_BACKEND_URL || "http://localhost:5000", 
   withCredentials: true
 });
 
@@ -22,6 +22,12 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
+
+// Login helper function
+export const login = async (credentials) => {
+  return api.post("/auth/login", credentials);
+};
 
 export default api;
 
