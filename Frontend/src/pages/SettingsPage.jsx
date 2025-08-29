@@ -1,5 +1,7 @@
+
 import React, { useEffect } from "react";
 import { useThemeStore } from "../store/useThemeStore";
+import { useTranslation } from "react-i18next";
 
 const THEME_COLORS = [
   { name: "Blue", value: "#3B82F6" },
@@ -17,6 +19,7 @@ const PREVIEW_MESSAGES = [
 
 const SettingsPage = () => {
   const { theme, setTheme } = useThemeStore();
+  const { t } = useTranslation();
 
   // Apply theme as a CSS variable whenever it changes
   useEffect(() => {
@@ -29,9 +32,9 @@ const SettingsPage = () => {
     <div className="h-screen container mx-auto px-4 pt-20 max-w-5xl">
       {/* Title */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-semibold">Theme</h1>
+        <h1 className="text-3xl font-semibold">{t('theme')}</h1>
         <p className="text-gray-500">
-          Choose your preferred theme color for your conversations.
+          {t('chooseTheme')}
         </p>
       </div>
 
@@ -55,7 +58,7 @@ const SettingsPage = () => {
       </div>
 
       {/* Preview Area */}
-      <h3 className="text-lg font-semibold my-4">Preview</h3>
+  <h3 className="text-lg font-semibold my-4">{t('preview')}</h3>
       <div className="rounded-xl border overflow-hidden shadow-lg">
         <div className="p-4 bg-gray-100">
           <div className="max-w-lg mx-auto">
@@ -70,7 +73,7 @@ const SettingsPage = () => {
                 </div>
                 <div>
                   <h3 className="font-medium text-sm">John Doe</h3>
-                  <p className="text-xs text-gray-500">Online</p>
+                  <p className="text-xs text-gray-500">{t('online')}</p>
                 </div>
               </div>
 
@@ -104,7 +107,7 @@ const SettingsPage = () => {
                 <input
                   type="text"
                   className="flex-1 border rounded-lg px-3 py-2 text-sm"
-                  placeholder="Type a message..."
+                  placeholder={t('typeMessage')}
                   value="This is a preview"
                   readOnly
                 />
@@ -112,7 +115,7 @@ const SettingsPage = () => {
                   className="px-4 py-2 rounded-lg text-white"
                   style={{ backgroundColor: theme }}
                 >
-                  Send
+                  {t('send')}
                 </button>
               </div>
             </div>

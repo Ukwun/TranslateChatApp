@@ -1,3 +1,4 @@
+
 import { useRef, useState } from "react";
 import { Camera, Settings } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
@@ -5,6 +6,7 @@ import EditProfileModal from "../components/EditProfileModal";
 import api from "../api/api.js";
 import { Link, useNavigate } from "react-router-dom";
 import { styled } from "goober";
+import { useTranslation } from "react-i18next";
 
 // Let's create a modern, rounded button using the `goober` CSS-in-JS library.
 // This button has a clean look, a subtle shadow, and a nice hover effect.
@@ -35,6 +37,7 @@ const GoToChatButton = styled("button")`
 
 const ProfilePage = () => {
 	const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
+	const { t } = useTranslation();
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const fileInputRef = useRef(null);
 	const navigate = useNavigate();
@@ -54,7 +57,7 @@ const ProfilePage = () => {
 	return (
 		<div className='flex justify-center items-start px-4 pt-20 pb-4 md:pt-24 md:pb-8'>
 			<div className='w-full max-w-4xl mx-auto relative'>
-				<Link to='/settings' className='absolute top-0 right-0 m-4 z-10' aria-label='Go to settings'>
+				<Link to='/settings' className='absolute top-0 right-0 m-4 z-10' aria-label={t('settings')}>
 					<button className='btn btn-ghost btn-circle'>
 						<Settings className='w-6 h-6 text-white' />
 					</button>
@@ -95,7 +98,7 @@ const ProfilePage = () => {
 							<h1 className='text-3xl md:text-4xl font-bold text-white'>{authUser.fullName}</h1>
 							<p className='text-gray-400 mt-1'>@{authUser.username}</p>
 							<p className='text-gray-300 mt-4'>
-								This is a placeholder bio. Users can edit this in the settings page to share more about themselves.
+								{/* You can localize this bio text if needed */}
 							</p>
 						</div>
 					</div>
@@ -104,18 +107,18 @@ const ProfilePage = () => {
 				{/* Account Information Section */}
 				<div className='mt-8 bg-gray-800 rounded-lg shadow-lg p-6'>
 					<div className='flex justify-between items-center mb-4'>
-						<h2 className='text-xl font-semibold text-white'>Account Information</h2>
+						<h2 className='text-xl font-semibold text-white'>{t('accountInfo')}</h2>
 						<button className='btn btn-sm btn-outline btn-primary' onClick={() => setIsModalOpen(true)}>
-							Edit Profile
+							{t('editProfile')}
 						</button>
 					</div>
 					<div className='space-y-4 text-sm'>
 						<div className='flex items-center justify-between py-3 border-b border-gray-700'>
-							<span className='text-gray-400'>Full Name</span>
+							<span className='text-gray-400'>{t('fullName')}</span>
 							<span className='text-white font-medium'>{authUser.fullName}</span>
 						</div>
 						<div className='flex items-center justify-between py-3 border-b border-gray-700'>
-							<span className='text-gray-400'>Email</span>
+							<span className='text-gray-400'>{t('email')}</span>
 							<span className='text-white font-medium'>{authUser.email}</span>
 						</div>
 						<div className='flex items-center justify-between py-3 border-b border-gray-700'>
@@ -123,14 +126,14 @@ const ProfilePage = () => {
 							<span className='text-white font-medium'>@{authUser.username}</span>
 						</div>
 						<div className='flex items-center justify-between py-3'>
-							<span className='text-gray-400'>Gender</span>
+							<span className='text-gray-400'>{t('gender')}</span>
 							<span className='text-white font-medium capitalize'>{authUser.gender}</span>
 						</div>
 					</div>
 				</div>
 
 				<div className='mt-8 flex justify-center'>
-					<GoToChatButton onClick={handleGoToChat}>Chat Room</GoToChatButton>
+					<GoToChatButton onClick={handleGoToChat}>{t('chatRoom')}</GoToChatButton>
 				</div>
 			</div>
 

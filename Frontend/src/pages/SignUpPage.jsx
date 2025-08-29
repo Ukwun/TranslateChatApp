@@ -1,10 +1,13 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../store/useAuthStore";
+import { useTranslation } from "react-i18next";
 
 const SignUpPage = () => {
   const { signup, isSigningUp, authUser } = useAuthStore();
+  const { t } = useTranslation();
   const [inputs, setInputs] = useState({
     fullName: "",
     email: "",
@@ -29,20 +32,20 @@ const SignUpPage = () => {
     e.preventDefault();
 
     // --- Validation ---
-    if (!inputs.fullName.trim()) return toast.error("Full name is required");
-    if (!inputs.email.trim()) return toast.error("Email is required");
+    if (!inputs.fullName.trim()) return toast.error(t('fullName') + ' ' + t('isRequired'));
+    if (!inputs.email.trim()) return toast.error(t('email') + ' ' + t('isRequired'));
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputs.email);
-    if (!emailOk) return toast.error("Enter a valid email");
-    if (!inputs.password) return toast.error("Password is required");
+    if (!emailOk) return toast.error(t('enterEmail'));
+    if (!inputs.password) return toast.error(t('password') + ' ' + t('isRequired'));
     if (inputs.password.length < 6) {
-      return toast.error("Password must be at least 6 characters");
+      return toast.error(t('password') + ' ' + t('minLength'));
     }
     if (inputs.password !== inputs.confirmPassword) {
-      return toast.error("Passwords do not match");
+      return toast.error(t('passwordsDoNotMatch'));
     }
 
     if (!inputs.gender) {
-      return toast.error("Please select a gender.");
+      return toast.error(t('selectGender'));
     }
     try {
       await signup({
@@ -61,63 +64,63 @@ const SignUpPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md text-gray-800">
-        <h2 className="text-2xl font-bold text-center mb-6">Create an Account</h2>
+  <h2 className="text-2xl font-bold text-center mb-6">{t('signup')}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Full Name</label>
+            <label className="block text-sm font-medium text-gray-700">{t('fullName')}</label>
             <input
               type="text"
               name="fullName"
               value={inputs.fullName}
               onChange={handleChange}
-              placeholder="Enter your name"
+              placeholder={t('enterName')}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
           {/* Email */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label className="block text-sm font-medium text-gray-700">{t('email')}</label>
             <input
               type="email"
               name="email"
               value={inputs.email}
               onChange={handleChange}
-              placeholder="Enter your email"
+              placeholder={t('enterEmail')}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <label className="block text-sm font-medium text-gray-700">{t('password')}</label>
             <input
               type="password"
               name="password"
               value={inputs.password}
               onChange={handleChange}
-              placeholder="Enter your password"
+              placeholder={t('enterPassword')}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+            <label className="block text-sm font-medium text-gray-700">{t('confirmPassword')}</label>
             <input
               type="password"
               name="confirmPassword"
               value={inputs.confirmPassword}
               onChange={handleChange}
-              placeholder="Confirm your password"
+              placeholder={t('confirmYourPassword')}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
           {/* Gender */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Gender</label>
+            <label className="block text-sm font-medium text-gray-700">{t('gender')}</label>
             <select
               name="gender"
               value={inputs.gender}
@@ -125,14 +128,14 @@ const SignUpPage = () => {
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
             >
-              <option value="" disabled>Select your gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
+              <option value="" disabled>{t('selectGender')}</option>
+              <option value="male">{t('male')}</option>
+              <option value="female">{t('female')}</option>
             </select>
           </div>
           {/* Language */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Language</label>
+            <label className="block text-sm font-medium text-gray-700">{t('language')}</label>
             <select
               name="language"
               value={inputs.language}
@@ -141,13 +144,13 @@ const SignUpPage = () => {
               required
             >
               <option value="en">English</option>
-              <option value="ko">Korean</option>
-              <option value="fr">French</option>
-              <option value="es">Spanish</option>
-              <option value="de">German</option>
-              <option value="zh">Chinese</option>
-              <option value="ja">Japanese</option>
-              <option value="ru">Russian</option>
+              <option value="ko">한국어 (Korean)</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+              <option value="zh">中文 (Chinese)</option>
+              <option value="ja">日本語 (Japanese)</option>
+              <option value="ru">Русский</option>
             </select>
           </div>
           {/* Submit Button */}
@@ -156,14 +159,14 @@ const SignUpPage = () => {
             className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed"
             disabled={isSigningUp}
           >
-            {isSigningUp ? "Creating Account..." : "Sign up"}
+            {isSigningUp ? t('signup') + '...' : t('signup')}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm opacity-80">
-          Already have an account?{" "}
+          {t('alreadyHaveAccount')} {" "}
           <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-            Log in
+            {t('login')}
           </Link>
         </p>
       </div>

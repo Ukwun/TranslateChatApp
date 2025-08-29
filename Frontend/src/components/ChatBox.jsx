@@ -2,10 +2,12 @@ import React, { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
 import toast from "react-hot-toast";
 import { useThemeStore } from "../store/useThemeStore";
+import { useTranslation } from "react-i18next";
 // Use relative path for Vite proxy and specify socket.io path
 const socket = io("/", { withCredentials: true, path: "/socket.io" });
 
 export default function ChatBox({ user, currentChatUser }) {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [image, setImage] = useState(null);
@@ -134,7 +136,7 @@ export default function ChatBox({ user, currentChatUser }) {
           </div>
           <div>
             <h3 className="font-medium text-lg text-white">{currentChatUser.fullName}</h3>
-            <p className="text-xs text-white">Online</p>
+            <p className="text-xs text-white">{t('online')}</p>
           </div>
         </div>
         {isTyping && (
@@ -147,8 +149,8 @@ export default function ChatBox({ user, currentChatUser }) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg) => {
-          // If message has originalText and translatedText, show both
-          const showTranslation = msg.originalText && msg.translatedText && msg.originalText !== msg.translatedText;
+          // Always show translatedText for received messages
+          const isReceived = msg.senderId !== user._id;
           return (
             <div
               key={msg._id}
@@ -161,15 +163,17 @@ export default function ChatBox({ user, currentChatUser }) {
                 color: "white"
               }}
             >
-              {showTranslation ? (
+              {isReceived && msg.translatedText ? (
                 <>
                   <p className="text-white font-bold">{msg.translatedText}</p>
-                  <p className="text-xs text-gray-300 mt-1">Original: {msg.originalText}</p>
+                  {msg.originalText && (
+                    <p className="text-xs text-gray-300 mt-1">{t('originalText')}: {msg.originalText}</p>
+                  )}
                 </>
               ) : (
                 msg.text && <p className="text-white">{msg.text}</p>
               )}
-              {msg.image && <img src={msg.image} alt="message content" className="rounded-lg mt-2 max-w-xs" />}
+              {msg.image && <img src={msg.image} alt={t('messageContent')} className="rounded-lg mt-2 max-w-xs" />}
             </div>
           );
         })}
@@ -200,7 +204,7 @@ export default function ChatBox({ user, currentChatUser }) {
           value={text}
           onChange={handleTyping}
           onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Type a message..."
+          placeholder={t('typeMessage')}
           className="flex-1 p-2 mx-2 rounded-xl bg-gray-800 text-white outline-none"
         />
         <button
@@ -208,7 +212,7 @@ export default function ChatBox({ user, currentChatUser }) {
           className="px-4 py-2 rounded-xl text-white"
           style={{ backgroundColor: theme }}
         >
-          Send
+          {t('send')}
         </button>
       </div>
     </div>
