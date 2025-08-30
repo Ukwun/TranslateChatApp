@@ -45,9 +45,15 @@ export default function ChatBox({ user, currentChatUser }) {
 
     socket.emit("join", user._id);
 
-    const handleNewMessage = (msg) => {
+    const handleNewMessage = async (msg) => {
       if (msg.senderId === currentChatUser._id || msg.receiverId === currentChatUser._id) {
-        setMessages((prev) => [...prev, msg]);
+        // Refetch messages from server so both users see the latest
+        try {
+          const res = await api.get(`messages/${currentChatUser._id}`);
+          setMessages(res.data);
+        } catch (error) {
+          toast.error("Failed to sync messages");
+        }
       }
     };
 
