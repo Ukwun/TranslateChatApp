@@ -43,7 +43,8 @@ export default function ChatBox({ user, currentChatUser }) {
   useEffect(() => {
     if (!user?._id || !currentChatUser?._id) return;
 
-    socket.emit("join", user._id);
+  socket.emit("join", user._id);
+  socket.emit("join", currentChatUser._id);
 
     const handleNewMessage = async (msg) => {
       if (msg.senderId === currentChatUser._id || msg.receiverId === currentChatUser._id) {
