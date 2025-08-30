@@ -4,7 +4,8 @@ import toast from "react-hot-toast";
 import { useThemeStore } from "../store/useThemeStore";
 import { useTranslation } from "react-i18next";
 import api from "../api/api";
-// Singleton socket.io client
+// Get token from localStorage
+const token = localStorage.getItem('chat-user-token');
 let socket;
 if (!window._chatSocket) {
   window._chatSocket = io(
@@ -13,6 +14,7 @@ if (!window._chatSocket) {
       withCredentials: true,
       path: "/socket.io",
       transports: ["websocket", "polling"],
+      auth: { token },
     }
   );
 }
@@ -49,9 +51,7 @@ export default function ChatBox({ user, currentChatUser }) {
   // Socket.IO listeners
   useEffect(() => {
     if (!user?._id || !currentChatUser?._id) return;
-    socket.emit("join", user._id);
-    socket.emit("join", currentChatUser._id);
-
+    // No need to emit join, server auto-joins
     const handleNewMessage = async () => {
       // Always fetch conversation using both user IDs
       try {
@@ -69,11 +69,11 @@ export default function ChatBox({ user, currentChatUser }) {
       }
     };
 
-    socket.on("newMessage", handleNewMessage);
+    socket.on("new_message", handleNewMessage);
     socket.on("typing", handleTyping);
 
     return () => {
-      socket.off("newMessage", handleNewMessage);
+      socket.off("new_message", handleNewMessage);
       socket.off("typing", handleTyping);
     };
   }, [user, currentChatUser]);
