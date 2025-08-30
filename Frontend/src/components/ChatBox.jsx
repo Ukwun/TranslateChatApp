@@ -4,14 +4,19 @@ import toast from "react-hot-toast";
 import { useThemeStore } from "../store/useThemeStore";
 import { useTranslation } from "react-i18next";
 import api from "../api/api";
-// Use backend URL for socket.io in production, relative path in development
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
-const socket = io(  import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL,
-  {
-  withCredentials: true,
-  path: "/socket.io",
-  transports: ["polling, websocket"], // force WS in most hosts
-});
+// Singleton socket.io client
+let socket;
+if (!window._chatSocket) {
+  window._chatSocket = io(
+    import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL || "http://localhost:5000",
+    {
+      withCredentials: true,
+      path: "/socket.io",
+      transports: ["websocket", "polling"],
+    }
+  );
+}
+socket = window._chatSocket;
 
 export default function ChatBox({ user, currentChatUser }) {
   const { t } = useTranslation();
@@ -24,13 +29,14 @@ export default function ChatBox({ user, currentChatUser }) {
   const imageInputRef = useRef(null);
   const { theme } = useThemeStore();
 
-  // Fetch messages when chat user changes
+  // Fetch messages for both users
   useEffect(() => {
     const getMessages = async () => {
-      if (!currentChatUser?._id) return;
-      setMessages([]); // Clear previous messages
+      if (!user?._id || !currentChatUser?._id) return;
+      setMessages([]);
       try {
-  const res = await api.get(`/messages/${currentChatUser._id}`);
+        // Always fetch conversation using both user IDs
+        const res = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
         setMessages(res.data);
       } catch (error) {
         toast.error(error.response?.data?.message || "Failed to fetch messages");
@@ -38,20 +44,18 @@ export default function ChatBox({ user, currentChatUser }) {
       }
     };
     getMessages();
-  }, [currentChatUser]);
+  }, [user, currentChatUser]);
 
   // Socket.IO listeners
   useEffect(() => {
     if (!user?._id || !currentChatUser?._id) return;
+    socket.emit("join", user._id);
+    socket.emit("join", currentChatUser._id);
 
-  socket.emit("join", user._id);
-  socket.emit("join", currentChatUser._id);
-
-    const handleNewMessage = async (msg) => {
-      // Always fetch messages with the other user's _id
-      const chatUserId = msg.senderId === user._id ? msg.receiverId : msg.senderId;
+    const handleNewMessage = async () => {
+      // Always fetch conversation using both user IDs
       try {
-        const res = await api.get(`/messages/${chatUserId}`);
+        const res = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
         setMessages(res.data);
       } catch (error) {
         toast.error("Failed to sync messages");
@@ -79,28 +83,17 @@ export default function ChatBox({ user, currentChatUser }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // Only set image if it's a valid image file
-        if (reader.result.startsWith("data:image")) {
-          setImage(reader.result);
-        } else {
-          toast.error("Please select a valid image file.");
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const sendMessage = async () => {
-    if (!text.trim() && !image) return;
+    if (!text.trim() && !image) {
+      toast.error("Type a message or select an image.");
+      return;
+    }
     setIsSending(true);
     try {
       const res = await api.post(`/messages/send/${currentChatUser._id}`, { text, image });
-      setMessages((prev) => [...prev, res.data]);
+      // After sending, fetch the full conversation
+      const convRes = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
+      setMessages(convRes.data);
       setText("");
       setImage(null);
       if (imageInputRef.current) {
@@ -111,6 +104,25 @@ export default function ChatBox({ user, currentChatUser }) {
       console.error("Failed to send message:", error);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result.startsWith("data:image")) {
+          setImage(reader.result);
+          // Automatically send image if no text
+          if (!text.trim()) {
+            sendMessage();
+          }
+        } else {
+          toast.error("Please select a valid image file.");
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
