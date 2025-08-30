@@ -4,6 +4,24 @@ import Message from "../models/message.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { translateText } from "../lib/translate.js";
 
+// Get all messages between two users (for frontend conversation fetch)
+export const getConversationMessages = async (req, res) => {
+  try {
+    const { userId, chatUserId } = req.params;
+    // Find conversation with both participants
+    const conversation = await Conversation.findOne({
+      participants: { $all: [userId, chatUserId] },
+    }).populate("messages");
+    if (!conversation) {
+      return res.status(200).json([]);
+    }
+    res.status(200).json(conversation.messages);
+  } catch (error) {
+    console.error("❌ Error in getConversationMessages controller:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 export const getUsersForSidebar = async(req, res) => {
     try {
         const loggedInUserId = req.user._id;

@@ -9,4 +9,7 @@ router.get("/users",protectRoute, getUsersForSidebar)
 router.get("/:id",protectRoute,getMessages)
 router.post("/send/:id", protectRoute, sendMessage)
 
+// New route to get all messages between two users
+router.get("/conversation/:userId/:chatUserId", protectRoute, getConversationMessages);
+
 export default router;
