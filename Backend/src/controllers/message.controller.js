@@ -53,16 +53,33 @@ export const sendMessage = async (req, res) => {
       imageUrl = uploadResponse.secure_url;
     }
 
-    // Get receiver's language
+    // Get receiver's language and map to readable name for OpenAI
     const receiver = await User.findById(receiverId);
-    const targetLang = receiver?.language || "en";
+    const langMap = {
+      en: "English",
+      ko: "Korean",
+      fr: "French",
+      es: "Spanish",
+      de: "German",
+      zh: "Chinese",
+      ja: "Japanese",
+      ru: "Russian",
+      it: "Italian"
+    };
+    const targetLangCode = receiver?.language || "en";
+    const targetLangName = langMap[targetLangCode] || "English";
 
-    // Translate text if needed
+    // Always translate text to receiver's preferred language
     let translatedText = text;
     let originalText = text;
-    if (text && targetLang && targetLang !== "en") {
+    if (text && targetLangCode) {
       try {
-        translatedText = await translateText(text, targetLang, process.env.OPENAI_API_KEY);
+        // Only skip translation if sender and receiver language are the same
+        const sender = await User.findById(senderId);
+        const senderLang = sender?.language || "en";
+        if (targetLangCode !== senderLang) {
+          translatedText = await translateText(text, targetLangName, process.env.OPENAI_API_KEY);
+        }
       } catch (err) {
         console.error("Translation error:", err.message);
       }
@@ -95,6 +112,7 @@ export const sendMessage = async (req, res) => {
     await conversation.save();
 
   req.io.to(receiverId.toString()).emit("newMessage", newMessage);
+  req.io.to(senderId.toString()).emit("newMessage", newMessage);
 
   res.status(201).json(newMessage);
   } catch (error) {
