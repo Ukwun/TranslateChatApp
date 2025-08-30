@@ -29,7 +29,7 @@ export default function ChatBox({ user, currentChatUser }) {
       if (!currentChatUser?._id) return;
       setMessages([]); // Clear previous messages
       try {
-        const res = await api.get(`messages/${currentChatUser._id}`);
+  const res = await api.get(`/messages/${currentChatUser._id}`);
         setMessages(res.data);
       } catch (error) {
         toast.error(error.response?.data?.message || "Failed to fetch messages");
@@ -49,7 +49,7 @@ export default function ChatBox({ user, currentChatUser }) {
       if (msg.senderId === currentChatUser._id || msg.receiverId === currentChatUser._id) {
         // Refetch messages from server so both users see the latest
         try {
-          const res = await api.get(`messages/${currentChatUser._id}`);
+          const res = await api.get(`/messages/${currentChatUser._id}`);
           setMessages(res.data);
         } catch (error) {
           toast.error("Failed to sync messages");
@@ -98,7 +98,7 @@ export default function ChatBox({ user, currentChatUser }) {
     if (!text.trim() && !image) return;
 
     try {
-      const res = await api.post(`messages/send/${currentChatUser._id}`, { text, image });
+  const res = await api.post(`/messages/send/${currentChatUser._id}`, { text, image });
       setMessages((prev) => [...prev, res.data]);
       setText("");
       setImage(null);
