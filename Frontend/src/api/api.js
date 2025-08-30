@@ -3,7 +3,7 @@ import axios from 'axios';
 // Create an Axios instance with a base URL.
 // All requests made with this instance will be prefixed with '/api'.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || "http://localhost:5000", 
+  baseURL: (import.meta.env.VITE_BACKEND_URL || "http://localhost:5000") + "/api", 
   withCredentials: true
 });
 
