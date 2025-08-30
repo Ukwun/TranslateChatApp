@@ -19,6 +19,7 @@ export default function ChatBox({ user, currentChatUser }) {
   const [text, setText] = useState("");
   const [image, setImage] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   const imageInputRef = useRef(null);
   const { theme } = useThemeStore();
@@ -97,9 +98,9 @@ export default function ChatBox({ user, currentChatUser }) {
 
   const sendMessage = async () => {
     if (!text.trim() && !image) return;
-
+    setIsSending(true);
     try {
-  const res = await api.post(`/messages/send/${currentChatUser._id}`, { text, image });
+      const res = await api.post(`/messages/send/${currentChatUser._id}`, { text, image });
       setMessages((prev) => [...prev, res.data]);
       setText("");
       setImage(null);
@@ -109,6 +110,8 @@ export default function ChatBox({ user, currentChatUser }) {
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to send message");
       console.error("Failed to send message:", error);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -205,10 +208,15 @@ export default function ChatBox({ user, currentChatUser }) {
         />
         <button
           onClick={sendMessage}
-          className="px-4 py-2 rounded-xl text-white"
+          className="px-4 py-2 rounded-xl text-white flex items-center justify-center"
           style={{ backgroundColor: theme }}
+          disabled={isSending}
         >
-          {t('send')}
+          {isSending ? (
+            <span className="loading loading-spinner loading-xs"></span>
+          ) : (
+            t('send')
+          )}
         </button>
       </div>
     </div>
