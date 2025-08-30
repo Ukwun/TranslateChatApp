@@ -48,14 +48,13 @@ export default function ChatBox({ user, currentChatUser }) {
   socket.emit("join", currentChatUser._id);
 
     const handleNewMessage = async (msg) => {
-      if (msg.senderId === currentChatUser._id || msg.receiverId === currentChatUser._id) {
-        // Refetch messages from server so both users see the latest
-        try {
-          const res = await api.get(`/messages/${currentChatUser._id}`);
-          setMessages(res.data);
-        } catch (error) {
-          toast.error("Failed to sync messages");
-        }
+      // Always fetch messages with the other user's _id
+      const chatUserId = msg.senderId === user._id ? msg.receiverId : msg.senderId;
+      try {
+        const res = await api.get(`/messages/${chatUserId}`);
+        setMessages(res.data);
+      } catch (error) {
+        toast.error("Failed to sync messages");
       }
     };
 
