@@ -23,10 +23,11 @@ export const useChatStore = create((set, get) => ({
         }
     },
 
-    getMessages: async (userId) => {
+    getMessages: async (chatUserId) => {
         set({ isMessagesLoading: true });
         try {
-            const res = await api.get(`/messages/${userId}`);
+            const userId = get().selectedUser?._id;
+            const res = await api.get(`/messages/conversation/${userId}/${chatUserId}`);
             set({ messages: res.data });
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to fetch messages');
@@ -40,7 +41,7 @@ export const useChatStore = create((set, get) => ({
         try {
             const res = await api.post(`/messages/send/${selectedUser._id}`, messageData);
             // After sending, fetch latest messages for both users
-            const messagesRes = await api.get(`/messages/${selectedUser._id}`);
+            const messagesRes = await api.get(`/messages/conversation/${selectedUser._id}/${messageData.receiverId}`);
             set({ messages: messagesRes.data });
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to send message');
