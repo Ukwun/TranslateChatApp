@@ -3,6 +3,7 @@ import io from "socket.io-client";
 import toast from "react-hot-toast";
 import { useThemeStore } from "../store/useThemeStore";
 import { useTranslation } from "react-i18next";
+import api from "../api/api";
 // Use backend URL for socket.io in production, relative path in development
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 const socket = io(  import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_BACKEND_URL,
@@ -28,17 +29,10 @@ export default function ChatBox({ user, currentChatUser }) {
       if (!currentChatUser?._id) return;
       setMessages([]); // Clear previous messages
       try {
-        const res = await fetch(`/api/messages/${currentChatUser._id}`, {
-          credentials: "include",
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setMessages(data);
-        } else {
-          toast.error(data.message || "Failed to fetch messages");
-        }
+        const res = await api.get(`messages/${currentChatUser._id}`);
+        setMessages(res.data);
       } catch (error) {
-        toast.error("Failed to fetch messages");
+        toast.error(error.response?.data?.message || "Failed to fetch messages");
         console.error("Failed to fetch messages:", error);
       }
     };
@@ -98,26 +92,15 @@ export default function ChatBox({ user, currentChatUser }) {
     if (!text.trim() && !image) return;
 
     try {
-      const res = await fetch(`/api/messages/send/${currentChatUser._id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ text, image }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setMessages((prev) => [...prev, data]);
-        setText("");
-        setImage(null);
-        if (imageInputRef.current) {
-          imageInputRef.current.value = "";
-        }
-      } else {
-        toast.error(data.message || "Failed to send message");
+      const res = await api.post(`messages/send/${currentChatUser._id}`, { text, image });
+      setMessages((prev) => [...prev, res.data]);
+      setText("");
+      setImage(null);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = "";
       }
     } catch (error) {
-      toast.error("Failed to send message");
+      toast.error(error.response?.data?.message || "Failed to send message");
       console.error("Failed to send message:", error);
     }
   };
