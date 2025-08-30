@@ -38,7 +38,6 @@ const allowedOrigins = [
   "https://ukwunapp.netlify.app/",
 ];
 
-
 const corsOptions = {
   origin: function (origin, cb) {
     // Always allow Netlify frontend and localhost
@@ -125,6 +124,20 @@ app.get("/", (_req, res) => {
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+
+// Debug endpoint for sockets
+app.get("/debug/sockets", (req, res) => {
+  try {
+    const sockets = Array.from(io.sockets.sockets.values()).map(s => ({
+      id: s.id,
+      userId: s.userId,
+      rooms: Array.from(s.rooms),
+    }));
+    res.json({ count: sockets.length, sockets });
+  } catch (err) {
+    res.status(500).json({ message: "error", err });
+  }
+});
 
 /* ----------------------------- 404 HANDLER ---------------------------- */
 app.use((req, res, next) => {

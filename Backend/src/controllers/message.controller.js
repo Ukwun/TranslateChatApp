@@ -3,6 +3,7 @@ import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { translateText } from "../lib/translate.js";
+import mongoose from "mongoose";
 
 // Get all messages between two users (for frontend conversation fetch)
 export const getConversationMessages = async (req, res) => {
@@ -136,5 +137,66 @@ export const sendMessage = async (req, res) => {
   } catch (error) {
     console.error("❌ Error in sendMessage controller:", error.message);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const sendTextMessage = async (req, res) => {
+  try {
+    const senderId = req.userId;
+    const { receiverId, text } = req.body;
+    if (!receiverId || !text) return res.status(400).json({ message: "Missing fields" });
+
+    const msg = await Message.create({
+      _id: new mongoose.Types.ObjectId(),
+      senderId,
+      receiverId,
+      text,
+      type: "text",
+      createdAt: new Date(),
+    });
+
+    const payload = { ...msg.toObject() };
+    if (req.io) {
+      req.io.to(String(receiverId)).emit("new_message", payload);
+      req.io.to(String(senderId)).emit("new_message", payload);
+      console.log("Emitted new_message to", receiverId);
+    } else {
+      console.warn("req.io undefined — message saved but not emitted");
+    }
+
+    return res.status(201).json({ message: "Message sent", data: payload });
+  } catch (err) {
+    console.error("sendTextMessage error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const sendImageMessage = async (req, res) => {
+  try {
+    const senderId = req.userId;
+    const { receiverId } = req.body;
+    if (!req.file || !receiverId) return res.status(400).json({ message: "Missing file or receiver" });
+
+    const imageUrl = await cloudinary.uploader.upload(req.file.path || req.file.buffer);
+
+    const msg = await Message.create({
+      _id: new mongoose.Types.ObjectId(),
+      senderId,
+      receiverId,
+      image: imageUrl.secure_url,
+      type: "image",
+      createdAt: new Date(),
+    });
+
+    const payload = { ...msg.toObject() };
+    if (req.io) {
+      req.io.to(String(receiverId)).emit("new_message", payload);
+      req.io.to(String(senderId)).emit("new_message", payload);
+    }
+
+    return res.status(201).json({ message: "Image sent", data: payload });
+  } catch (err) {
+    console.error("sendImageMessage error:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
