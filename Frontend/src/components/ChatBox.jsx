@@ -90,9 +90,25 @@ export default function ChatBox({ user, currentChatUser }) {
     }
     setIsSending(true);
     try {
-      const res = await api.post(`/messages/send/${currentChatUser._id}`, { text, image });
+      let convRes;
+      if (image) {
+        // Send image message
+        const form = new FormData();
+        form.append("image", imageInputRef.current.files[0]);
+        form.append("receiverId", currentChatUser._id);
+        await api.post("/messages/send-image", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+      if (text.trim()) {
+        // Send text message
+        await api.post("/messages/send-text", {
+          receiverId: currentChatUser._id,
+          text,
+        });
+      }
       // After sending, fetch the full conversation
-      const convRes = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
+      convRes = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
       setMessages(convRes.data);
       setText("");
       setImage(null);
@@ -110,19 +126,11 @@ export default function ChatBox({ user, currentChatUser }) {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (reader.result.startsWith("data:image")) {
-          setImage(reader.result);
-          // Automatically send image if no text
-          if (!text.trim()) {
-            sendMessage();
-          }
-        } else {
-          toast.error("Please select a valid image file.");
-        }
-      };
-      reader.readAsDataURL(file);
+      setImage(file);
+      // Automatically send image if no text
+      if (!text.trim()) {
+        sendMessage();
+      }
     }
   };
 
