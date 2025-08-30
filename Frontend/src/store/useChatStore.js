@@ -36,10 +36,12 @@ export const useChatStore = create((set, get) => ({
     },
 
     sendMessage: async (messageData) => {
-        const { selectedUser, messages } = get();
+        const { selectedUser } = get();
         try {
             const res = await api.post(`/messages/send/${selectedUser._id}`, messageData);
-            set({ messages: [...messages, res.data] });
+            // After sending, fetch latest messages for both users
+            const messagesRes = await api.get(`/messages/${selectedUser._id}`);
+            set({ messages: messagesRes.data });
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to send message');
         }
