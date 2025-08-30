@@ -129,8 +129,8 @@ export const sendMessage = async (req, res) => {
     conversation.messages.push(newMessage._id);
     await conversation.save();
 
-  req.io.to(receiverId.toString()).emit("newMessage", newMessage);
-  req.io.to(senderId.toString()).emit("newMessage", newMessage);
+  req.io.to(receiverId.toString()).emit("new_message", newMessage);
+  req.io.to(senderId.toString()).emit("new_message", newMessage);
 
   res.status(201).json(newMessage);
   } catch (error) {

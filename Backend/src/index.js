@@ -65,6 +65,7 @@ app.use(cors(corsOptions));
 
 /* -------------------------- SOCKET.IO SETUP ------------------------- */
 
+import jwt from "jsonwebtoken";
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -72,6 +73,26 @@ const io = new Server(server, {
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   },
+});
+
+// Socket.IO JWT auth middleware
+io.use((socket, next) => {
+  let token = socket.handshake.auth?.token;
+  if (!token && socket.handshake.headers?.cookie) {
+    // Try to get token from cookies
+    const match = socket.handshake.headers.cookie.match(/jwt=([^;]+)/);
+    if (match) token = match[1];
+  }
+  if (!token) return next(new Error("Authentication error: No token provided"));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.userId;
+    // Auto-join user room
+    socket.join(socket.userId);
+    next();
+  } catch (err) {
+    next(new Error("Authentication error: Invalid token"));
+  }
 });
 
 // Attach io to req so it can be accessed in controllers
@@ -82,14 +103,7 @@ app.use((req, res, next) => {
 
 // Socket.IO events
 io.on("connection", (socket) => {
-  console.log("🔌 User connected:", socket.id);
-
-  socket.on("join", (userId) => {
-    if (userId) {
-      socket.join(userId);
-      console.log(`✅ User ${userId} joined their room`);
-    }
-  });
+  console.log("🔌 User connected:", socket.id, "userId:", socket.userId);
 
   // Typing indicator
   socket.on("typing", (receiverId) => {
