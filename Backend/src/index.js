@@ -12,6 +12,7 @@ dotenv.config();
 import connectDB from "./lib/db.js";
 import authRoutes from "./routes/auth.routes.js";
 import messageRoutes from "./routes/message.routes.js";
+import adminRoutes from "./routes/admin.route.js";
 
 const app = express();
 const server = createServer(app);
@@ -124,6 +125,7 @@ app.get("/", (_req, res) => {
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Debug endpoint for sockets
 app.get("/debug/sockets", (req, res) => {

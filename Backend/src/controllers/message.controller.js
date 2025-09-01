@@ -4,6 +4,7 @@ import Message from "../models/message.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { translateText } from "../lib/translate.js";
 import mongoose from "mongoose";
+import ChatRoom from "../models/chatRoom.model.js";
 
 // Get all messages between two users (for frontend conversation fetch)
 export const getConversationMessages = async (req, res) => {
@@ -58,12 +59,23 @@ export const getMessages = async (req, res) => {
 };
 
 
+// Only allow chat if both users are in the same admin-created chat room
+export const canChat = async (userA, userB) => {
+  const room = await ChatRoom.findOne({ members: { $all: [userA, userB] } });
+  return !!room;
+};
+
 // Send message
 export const sendMessage = async (req, res) => {
   try {
     const senderId = req.user._id;
     const receiverId = req.params.id;
     const { text, image } = req.body;
+
+    // Check if chat is allowed between sender and receiver
+    if (!(await canChat(senderId, receiverId))) {
+      return res.status(403).json({ message: "Chat not allowed" });
+    }
 
     let imageUrl;
     if (image) {
