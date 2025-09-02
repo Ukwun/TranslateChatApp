@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
+import ChatRoom from "../models/chatroom.model.js";
 import { v2 as cloudinary } from "cloudinary";
 // Ensure Cloudinary is configured before any upload
 import dotenv from "dotenv";
@@ -51,7 +52,6 @@ export const signup = async (req, res) => {
       await newUser.save();
 
       // Add user to chat room
-      const ChatRoom = (await import("../models/chatroom.model.js")).default;
       await ChatRoom.findByIdAndUpdate(roomId, {
         $addToSet: { members: newUser._id },
       });

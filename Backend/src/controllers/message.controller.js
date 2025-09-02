@@ -4,7 +4,7 @@ import Message from "../models/message.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { translateText } from "../lib/translate.js";
 import mongoose from "mongoose";
-import ChatRoom from "../models/chatRoom.model.js";
+import ChatRoom from "../models/chatroom.model.js";
 
 // Get all messages between two users (for frontend conversation fetch)
 export const getConversationMessages = async (req, res) => {
