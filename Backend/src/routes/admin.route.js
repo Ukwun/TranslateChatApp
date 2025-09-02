@@ -36,4 +36,10 @@ router.post("/create-room", protectRoute, async (req, res) => {
   res.json({ success: true, room });
 });
 
+// List chat rooms for signup
+router.get("/rooms", async (req, res) => {
+  const rooms = await ChatRoom.find({});
+  res.json(rooms);
+});
+
 export default router;

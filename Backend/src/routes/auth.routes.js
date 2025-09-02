@@ -3,7 +3,7 @@ import {
   checkAuth,
   login,
   logout,
-  signup,
+  signup as membershipSignup,
   updateProfile,
 } from "../controllers/auth.controller.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
@@ -13,7 +13,7 @@ const router = express.Router();
 
 // @desc    Register new user
 // @route   POST /api/auth/signup
-router.post("/signup", signup);
+router.post("/signup", membershipSignup);
 
 // @desc    Login user
 // @route   POST /api/auth/login

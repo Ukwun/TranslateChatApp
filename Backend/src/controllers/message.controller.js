@@ -84,68 +84,21 @@ export const sendMessage = async (req, res) => {
       imageUrl = uploadResponse.secure_url;
     }
 
-    // Get receiver's language and map to readable name for OpenAI
-    const receiver = await User.findById(receiverId);
-    const langMap = {
-      en: "English",
-      ko: "Korean",
-      fr: "French",
-      es: "Spanish",
-      de: "German",
-      zh: "Chinese",
-      ja: "Japanese",
-      ru: "Russian",
-      it: "Italian"
-    };
-    const targetLangCode = receiver?.language || "en";
-    const targetLangName = langMap[targetLangCode] || "English";
-
-    // Always translate text to receiver's preferred language
-    let translatedText = text;
-    let originalText = text;
-    if (text && targetLangCode) {
-      try {
-        // Only skip translation if sender and receiver language are the same
-        const sender = await User.findById(senderId);
-        const senderLang = sender?.language || "en";
-        if (targetLangCode !== senderLang) {
-          translatedText = await translateText(text, targetLangName, process.env.OPENAI_API_KEY);
-        }
-      } catch (err) {
-        console.error("Translation error:", err.message);
-      }
-    }
-
-    let conversation = await Conversation.findOne({
-      participants: { $all: [senderId, receiverId] },
-    });
-
-    if (!conversation) {
-      conversation = await Conversation.create({
-        participants: [senderId, receiverId],
-        messages: [],
-      });
-    }
-
-
-
-    // Always set originalText and translatedText, even for image-only messages
+    // Save message
     const newMessage = await Message.create({
       senderId,
       receiverId,
-      text: translatedText || "",
+      text: text || "",
       image: imageUrl || "",
-      originalText: originalText || "",
-      translatedText: translatedText || "",
+      originalText: text || "",
+      translatedText: text || "",
     });
 
-    conversation.messages.push(newMessage._id);
-    await conversation.save();
+    // Emit to both sender and receiver rooms
+    req.io.to(receiverId.toString()).emit("new_message", newMessage);
+    req.io.to(senderId.toString()).emit("new_message", newMessage);
 
-  req.io.to(receiverId.toString()).emit("new_message", newMessage);
-  req.io.to(senderId.toString()).emit("new_message", newMessage);
-
-  res.status(201).json(newMessage);
+    res.status(201).json(newMessage);
   } catch (error) {
     console.error("❌ Error in sendMessage controller:", error.message);
     res.status(500).json({ message: "Server error" });
