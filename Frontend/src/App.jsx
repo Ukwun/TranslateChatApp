@@ -8,6 +8,7 @@ import LoginPage from "./pages/LoginPage.jsx";
 import SettingsPage from './pages/SettingsPage.jsx';
 import ChatHomePage from './pages/ChatHomePage.jsx';
 import ProfilePage from "./pages/ProfilePage.jsx";
+import AdminPage from "./pages/AdminPage.jsx";
 import { useAuthStore } from './store/useAuthStore.js';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import api from './api/api.js';
@@ -48,6 +49,7 @@ const App = () => {
           <Route path='/settings' element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
           <Route path='/profile' element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path='/chat' element={<ProtectedRoute><ChatHomePage /></ProtectedRoute>} />
+          <Route path='/admin' element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
         </Routes>
       </main>
       <Toaster />

@@ -84,21 +84,35 @@ export const sendMessage = async (req, res) => {
       imageUrl = uploadResponse.secure_url;
     }
 
-    // Save message
-    const newMessage = await Message.create({
-      senderId,
-      receiverId,
-      text: text || "",
-      image: imageUrl || "",
-      originalText: text || "",
-      translatedText: text || "",
-    });
+      // Translate message using OPUS-MT FastAPI microservice
+      let translatedText = text || "";
+      try {
+        // You may want to determine srcLang and tgtLang dynamically; here we use 'en' to 'es' as example
+        const srcLang = req.body.srcLang || "en";
+        const tgtLang = req.body.tgtLang || "es";
+        if (text) {
+          translatedText = await translateTextOpusMT(text, srcLang, tgtLang);
+        }
+      } catch (err) {
+        console.error("Translation failed, using original text.", err);
+        translatedText = text || "";
+      }
 
-    // Emit to both sender and receiver rooms
-    req.io.to(receiverId.toString()).emit("new_message", newMessage);
-    req.io.to(senderId.toString()).emit("new_message", newMessage);
+      // Save message with original and translated text
+      const newMessage = await Message.create({
+        senderId,
+        receiverId,
+        text: translatedText,
+        image: imageUrl || "",
+        originalText: text || "",
+        translatedText: translatedText,
+      });
 
-    res.status(201).json(newMessage);
+      // Emit to both sender and receiver rooms
+      req.io.to(receiverId.toString()).emit("new_message", newMessage);
+      req.io.to(senderId.toString()).emit("new_message", newMessage);
+
+      res.status(201).json(newMessage);
   } catch (error) {
     console.error("❌ Error in sendMessage controller:", error.message);
     res.status(500).json({ message: "Server error" });

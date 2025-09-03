@@ -29,7 +29,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "en",
       required: true,
-    }
+    },
+    role: {
+      type: String,
+      enum: ["member", "admin"],
+      default: "member",
+    },
+    nickname: {
+      type: String,
+      default: "",
+    },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
