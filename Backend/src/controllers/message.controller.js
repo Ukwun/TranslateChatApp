@@ -55,7 +55,7 @@ export const sendTextMessage = async (req, res) => {
   }
 };
 import mongoose from "mongoose";
-import ChatRoom from "../models/chatroom.model.js";
+// ...existing code...
 
 // Get all messages between two users (for frontend conversation fetch)
 export const getConversationMessages = async (req, res) => {
@@ -113,7 +113,7 @@ export const getMessages = async (req, res) => {
 // Only allow chat if both users are in the same admin-created chat room
 export const canChat = async (userA, userB) => {
   const room = await ChatRoom.findOne({ members: { $all: [userA, userB] } });
-  return !!room;
+import ChatRoom from "../models/chatroom.model.js";
 };
 
 // Send message
