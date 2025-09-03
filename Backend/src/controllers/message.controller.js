@@ -2,7 +2,58 @@ import User from "../models/user.model.js";
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
 import cloudinary from "../lib/cloudinary.js";
-import { translateText } from "../lib/translate.js";
+import { translateText } from "../services/translation.service.js";
+import { detectISO1 } from "../lib/langDetect.js";
+// Improved sendTextMessage with language detection and translation
+export const sendTextMessage = async (req, res) => {
+  try {
+    const senderId = req.userId || req.user?._id;
+    const { receiverId, text, sourceLang } = req.body;
+
+    if (!receiverId || !text) {
+      return res.status(400).json({ message: "receiverId and text are required" });
+    }
+
+    const receiver = await User.findById(receiverId).lean();
+    if (!receiver) return res.status(404).json({ message: "Receiver not found" });
+
+    const src = (sourceLang || detectISO1(text)).toLowerCase();
+    const tgt = (receiver.preferredLang || "en").toLowerCase();
+
+    let translated = text;
+    let model = "noop";
+
+    if (src !== tgt) {
+      const out = await translateText({ text, source: src, target: tgt });
+      translated = out.translated;
+      model = out.model;
+    }
+
+    const msg = await Message.create({
+      _id: new mongoose.Types.ObjectId(),
+      sender: senderId,
+      receiver: receiverId,
+      textOriginal: text,
+      textTranslated: translated,
+      srcLang: src,
+      tgtLang: tgt,
+      translatorModel: model,
+      type: "text",
+      createdAt: new Date(),
+    });
+
+    const payload = msg.toObject ? msg.toObject() : msg;
+
+    // Emit to receiver and sender (so both UIs update)
+    req.io?.to(String(receiverId)).emit("new_message", payload);
+    req.io?.to(String(senderId)).emit("new_message", payload);
+
+    return res.status(201).json({ message: "Message sent", data: payload });
+  } catch (err) {
+    console.error("sendTextMessage error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 import mongoose from "mongoose";
 import ChatRoom from "../models/chatroom.model.js";
 
@@ -119,36 +170,6 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-export const sendTextMessage = async (req, res) => {
-  try {
-    const senderId = req.userId;
-    const { receiverId, text } = req.body;
-    if (!receiverId || !text) return res.status(400).json({ message: "Missing fields" });
-
-    const msg = await Message.create({
-      _id: new mongoose.Types.ObjectId(),
-      senderId,
-      receiverId,
-      text,
-      type: "text",
-      createdAt: new Date(),
-    });
-
-    const payload = { ...msg.toObject() };
-    if (req.io) {
-      req.io.to(String(receiverId)).emit("new_message", payload);
-      req.io.to(String(senderId)).emit("new_message", payload);
-      console.log("Emitted new_message to", receiverId);
-    } else {
-      console.warn("req.io undefined — message saved but not emitted");
-    }
-
-    return res.status(201).json({ message: "Message sent", data: payload });
-  } catch (err) {
-    console.error("sendTextMessage error:", err);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
 
 export const sendImageMessage = async (req, res) => {
   try {

@@ -11,6 +11,8 @@
     "autoprefixer": "^10.4.21",
     "axios": "^1.11.0",
     "daisyui": "^5.0.54",
+    "franc": "^6.2.0",
+    "langs": "^2.0.0",
     "node-fetch": "^2.6.7"
   },
   "devDependencies": {
