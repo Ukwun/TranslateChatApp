@@ -1,17 +1,17 @@
 // server/index.js (or server.js)
 import express from "express";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
+import dotenv from "dotenv";
+dotenv.config();
+
 import connectDB from "./lib/db.js";
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
-
-dotenv.config();
 
 const app = express();
 const server = createServer(app);
@@ -35,12 +35,16 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:5174",
+  "https://ukwun.netlify.app",
+  "https://translatechatapp.onrender.com",
+  "https://www.ukwun.netlify.app",
+  "https://ukwunapp.netlify.app",
 ];
 
 const corsOptions = {
-  origin(origin, cb) {
-    // allow requests with no origin (like curl/postman) or whitelisted origins
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+  origin: function (origin, cb) {
+    // Allow all origins for socket.io polling transport
+    if (!origin || allowedOrigins.includes(origin) || origin?.includes('netlify.app')) return cb(null, true);
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
@@ -51,7 +55,12 @@ app.use(cors(corsOptions));
 /* -------------------------- SOCKET.IO SETUP ------------------------- */
 
 const io = new Server(server, {
-  cors: corsOptions, // Reuse the same CORS options
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  },
 });
 
 // Attach io to req so it can be accessed in controllers
