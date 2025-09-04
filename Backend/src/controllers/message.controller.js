@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
+import ChatRoom from "../models/chatroom.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { translateText } from "../lib/translate.js";
 
@@ -20,8 +21,17 @@ export const getUsersForSidebar = async(req, res) => {
 // Get messages in a conversation
 export const getMessages = async (req, res) => {
   try {
-    const senderId = req.user._id; // ✅ FIXED here
+    const senderId = req.user._id;
     const receiverId = req.params.id;
+    const { roomId } = req.query;
+
+    // Restrict to members/admins of the room
+    if (roomId) {
+      const room = await ChatRoom.findById(roomId);
+      if (!room || !room.members.includes(senderId) || !room.members.includes(receiverId)) {
+        return res.status(403).json({ message: "Access denied: Not a member of this room." });
+      }
+    }
 
     const conversation = await Conversation.findOne({
       participants: { $all: [senderId, receiverId] },
@@ -44,7 +54,15 @@ export const sendMessage = async (req, res) => {
   try {
     const senderId = req.user._id;
     const receiverId = req.params.id;
-    const { text, image } = req.body;
+    const { text, image, roomId } = req.body;
+
+    // Restrict to members/admins of the room
+    if (roomId) {
+      const room = await ChatRoom.findById(roomId);
+      if (!room || !room.members.includes(senderId) || !room.members.includes(receiverId)) {
+        return res.status(403).json({ message: "Access denied: Not a member of this room." });
+      }
+    }
 
     let imageUrl;
     if (image) {
@@ -53,16 +71,33 @@ export const sendMessage = async (req, res) => {
       imageUrl = uploadResponse.secure_url;
     }
 
-    // Get receiver's language
+    // Get receiver's language and map to readable name for OpenAI
     const receiver = await User.findById(receiverId);
-    const targetLang = receiver?.language || "en";
+    const langMap = {
+      en: "English",
+      ko: "Korean",
+      fr: "French",
+      es: "Spanish",
+      de: "German",
+      zh: "Chinese",
+      ja: "Japanese",
+      ru: "Russian",
+      it: "Italian"
+    };
+    const targetLangCode = receiver?.language || "en";
+    const targetLangName = langMap[targetLangCode] || "English";
 
-    // Translate text if needed
+    // Always translate text to receiver's preferred language
     let translatedText = text;
     let originalText = text;
-    if (text && targetLang && targetLang !== "en") {
+    if (text && targetLangCode) {
       try {
-        translatedText = await translateText(text, targetLang, process.env.OPENAI_API_KEY);
+        // Only skip translation if sender and receiver language are the same
+        const sender = await User.findById(senderId);
+        const senderLang = sender?.language || "en";
+        if (targetLangCode !== senderLang) {
+          translatedText = await translateText(text, targetLangName, process.env.OPENAI_API_KEY);
+        }
       } catch (err) {
         console.error("Translation error:", err.message);
       }
@@ -79,8 +114,6 @@ export const sendMessage = async (req, res) => {
       });
     }
 
-
-
     // Always set originalText and translatedText, even for image-only messages
     const newMessage = await Message.create({
       senderId,
@@ -94,9 +127,9 @@ export const sendMessage = async (req, res) => {
     conversation.messages.push(newMessage._id);
     await conversation.save();
 
-  req.io.to(receiverId.toString()).emit("newMessage", newMessage);
+    req.io.to(receiverId.toString()).emit("newMessage", newMessage);
 
-  res.status(201).json(newMessage);
+    res.status(201).json(newMessage);
   } catch (error) {
     console.error("❌ Error in sendMessage controller:", error.message);
     res.status(500).json({ message: "Server error" });

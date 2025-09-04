@@ -29,5 +29,22 @@ export const login = async (credentials) => {
   return api.post("/auth/login", credentials);
 };
 
+// Admin room API helpers
+export const getAdminRooms = async (adminId) => {
+  return api.get(`/admin/rooms?adminId=${adminId}`);
+};
+export const createAdminRoom = async (name, memberIds) => {
+  return api.post("/admin/create", { name, memberIds });
+};
+export const getRoomMembers = async (roomId) => {
+  return api.get(`/admin/${roomId}/members`);
+};
+export const changeMemberNickname = async (roomId, memberId, nickname) => {
+  return api.put(`/admin/${roomId}/nickname`, { memberId, nickname });
+};
+export const removeRoomMember = async (roomId, memberId) => {
+  return api.delete(`/admin/${roomId}/member/${memberId}`);
+};
+
 export default api;
 

@@ -12,6 +12,7 @@ dotenv.config();
 import connectDB from "./lib/db.js";
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
+import adminRoutes from "./routes/admin.route.js";
 
 const app = express();
 const server = createServer(app);
@@ -101,6 +102,7 @@ app.get("/", (_req, res) => {
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/admin", adminRoutes);
 
 /* ----------------------------- 404 HANDLER ---------------------------- */
 app.use((req, res, next) => {
