@@ -58,6 +58,7 @@ const Navbar = () => {
 									</div>
 									<span className='font-bold hidden sm:inline'>{authUser.fullName}</span>
 								</Link>
+								<Link to='/admin-rooms' className='btn btn-sm btn-info text-white'>Create Chat Room</Link>
 								<button className='btn btn-sm btn-outline btn-error text-white' onClick={handleLogout}>
 									<LogOut className='w-4 h-4' />
 									{t('logout')}
