@@ -43,11 +43,13 @@ const AdminRoomPage = () => {
     setLoading(true);
     api.get(`/admin/rooms?adminId=${authUser._id}`)
       .then(res => {
+        console.log("Rooms response:", res.data);
         setRooms(res.data);
         setError("");
         setLoading(false);
       })
       .catch((err) => {
+        console.error("Rooms fetch error:", err);
         setRooms([]);
         setError("Failed to load admin rooms. Please check your login or server status.");
         setLoading(false);
