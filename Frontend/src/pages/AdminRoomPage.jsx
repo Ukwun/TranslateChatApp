@@ -41,6 +41,23 @@ const AdminRoomPage = () => {
     getUsers();
   }, [authUser, getUsers]);
 
+  // Fetch members when a room is selected
+  useEffect(() => {
+    if (!selectedRoom) {
+      setMembers([]);
+      return;
+    }
+    api.get(`/admin/rooms/${selectedRoom._id}/members`)
+      .then(res => {
+        setMembers(res.data);
+        setError("");
+      })
+      .catch(() => {
+        setMembers([]);
+        setError("Failed to load room members. Please try again.");
+      });
+  }, [selectedRoom]);
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-blue-900 to-gray-900 py-10 px-4">
       <div className="w-full max-w-3xl bg-white/95 rounded-3xl shadow-2xl p-10 mb-10">
