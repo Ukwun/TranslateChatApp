@@ -11,12 +11,11 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Retrieve the token from localStorage.
-    // Adjust this if you store the token elsewhere (e.g., cookies, context).
     const token = localStorage.getItem('chat-user-token');
-
     if (token) {
-      // If the token exists, add it to the Authorization header.
       config.headers.Authorization = `Bearer ${token}`;
+      // Also set cookie header for compatibility (if possible)
+      config.withCredentials = true;
     }
     return config;
   },
