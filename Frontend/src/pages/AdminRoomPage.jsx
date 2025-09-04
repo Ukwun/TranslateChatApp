@@ -29,7 +29,7 @@ export default function AdminRoomPage() {
     setLoading(true);
     try {
       const token = window.localStorage.getItem("chat-user-token");
-      const res = await fetch(`https://translatechatapp.onrender.com/api/admin/rooms?adminId=${adminId}`,
+  const res = await fetch(`https://translatechatapp.onrender.com/api/admin/rooms`,
         {
           headers: {
             "Content-Type": "application/json",
