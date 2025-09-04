@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import ChatBox from "../components/ChatBox";
 
 const AdminRoomPage = () => {
-  const { authUser, onlineUsers } = useAuthStore();
+  const { authUser, onlineUsers, checkAuth } = useAuthStore();
+  const navigate = useNavigate();
   const { users, getUsers } = useChatStore();
   const [rooms, setRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -15,7 +17,19 @@ const AdminRoomPage = () => {
   const [invitedUserIds, setInvitedUserIds] = useState([]);
 
   useEffect(() => {
-    api.get(`/admin/rooms?adminId=${authUser?._id}`)
+    // Check authentication on page load
+    const checkAuthentication = async () => {
+      await checkAuth();
+      if (!localStorage.getItem("chat-user-token") || !authUser?._id) {
+        navigate("/login");
+      }
+    };
+    checkAuthentication();
+  }, [checkAuth, authUser, navigate]);
+
+  useEffect(() => {
+    if (!authUser?._id) return;
+    api.get(`/admin/rooms?adminId=${authUser._id}`)
       .then(res => setRooms(res.data))
       .catch(() => setRooms([]));
     getUsers();
