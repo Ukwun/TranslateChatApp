@@ -35,23 +35,47 @@ const GoToChatButton = styled("button")`
 	}
 `;
 
+
 const ProfilePage = () => {
 	const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
 	const { t } = useTranslation();
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [isCreateRoomOpen, setIsCreateRoomOpen] = useState(false);
+	const [roomName, setRoomName] = useState("");
+	const [roomDesc, setRoomDesc] = useState("");
+	const [creatingRoom, setCreatingRoom] = useState(false);
 	const fileInputRef = useRef(null);
 	const navigate = useNavigate();
 
 	const handleImageUpload = async (e) => {
 		const file = e.target.files[0];
 		if (!file) return;
-		// Send the File object directly for FormData upload
 		await updateProfile({ profilePic: file });
 	};
 
 	const handleGoToChat = () => {
-		// Assuming your chatroom page is at the '/chat' route
 		navigate("/chat");
+	};
+
+	const handleCreateRoom = async (e) => {
+		e.preventDefault();
+		setCreatingRoom(true);
+		try {
+			const res = await fetch("https://translatechatapp.onrender.com/api/rooms", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ name: roomName, description: roomDesc }),
+			});
+			if (!res.ok) throw new Error("Failed to create room");
+			setRoomName("");
+			setRoomDesc("");
+			setIsCreateRoomOpen(false);
+			navigate("/admin-rooms");
+		} catch (err) {
+			alert("Error creating room. Please try again.");
+		} finally {
+			setCreatingRoom(false);
+		}
 	};
 
 	return (
@@ -132,10 +156,39 @@ const ProfilePage = () => {
 					</div>
 				</div>
 
-				<div className='mt-8 flex justify-center gap-4'>
-					<GoToChatButton onClick={handleGoToChat}>{t('chatRoom')}</GoToChatButton>
-					<GoToChatButton style={{ backgroundColor: '#2563eb', marginLeft: '12px' }} onClick={() => navigate('/admin-rooms')}>Create Room</GoToChatButton>
-				</div>
+						<div className='mt-8 flex justify-center gap-4'>
+							<GoToChatButton onClick={handleGoToChat}>{t('chatRoom')}</GoToChatButton>
+							<GoToChatButton style={{ backgroundColor: '#2563eb', marginLeft: '12px' }} onClick={() => setIsCreateRoomOpen(true)}>Create Room</GoToChatButton>
+						</div>
+
+						{/* Create Room Modal */}
+						{isCreateRoomOpen && (
+							<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+								<form onSubmit={handleCreateRoom} className="bg-white rounded-lg p-8 shadow-lg w-full max-w-md">
+									<h2 className="text-xl font-bold mb-4 text-blue-700">Create a New Room</h2>
+									<input
+										type="text"
+										placeholder="Room name"
+										value={roomName}
+										onChange={e => setRoomName(e.target.value)}
+										required
+										className="w-full mb-4 p-2 border rounded"
+									/>
+									<textarea
+										placeholder="Room description"
+										value={roomDesc}
+										onChange={e => setRoomDesc(e.target.value)}
+										className="w-full mb-4 p-2 border rounded"
+									/>
+									<div className="flex gap-4 justify-end">
+										<button type="button" className="px-4 py-2 bg-gray-300 rounded" onClick={() => setIsCreateRoomOpen(false)}>Cancel</button>
+										<button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" disabled={creatingRoom}>
+											{creatingRoom ? "Creating..." : "Create Room"}
+										</button>
+									</div>
+								</form>
+							</div>
+						)}
 			</div>
 
 			{isModalOpen && <EditProfileModal onClose={() => setIsModalOpen(false)} />}
