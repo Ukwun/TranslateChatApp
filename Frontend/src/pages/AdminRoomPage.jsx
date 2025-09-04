@@ -77,9 +77,12 @@ export default function AdminRoomPage() {
         body: JSON.stringify({ name, description, adminId, invitedUserIds: [] }),
       });
       if (!res.ok) throw new Error("Failed to create room");
+      const newRoom = await res.json();
       setName("");
       setDescription("");
-      fetchRooms();
+      // Refresh rooms and select the new room
+      await fetchRooms();
+      setSelectedRoom(newRoom);
     } catch (err) {
       setError("❌ Error creating room: " + err.message);
     }
