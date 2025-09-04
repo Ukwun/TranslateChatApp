@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/api";
 import { useAuthStore } from "../store/useAuthStore";
+import { useChatStore } from "../store/useChatStore";
 
 const AdminRoomPage = () => {
-  const { authUser } = useAuthStore();
+  const { authUser, onlineUsers } = useAuthStore();
+  const { users, getUsers } = useChatStore();
   const [rooms, setRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [members, setMembers] = useState([]);
@@ -12,11 +14,11 @@ const AdminRoomPage = () => {
   const [newRoomMembers, setNewRoomMembers] = useState("");
 
   useEffect(() => {
-    // Fetch all rooms created by admin
     api.get(`/admin/rooms?adminId=${authUser?._id}`)
       .then(res => setRooms(res.data))
       .catch(() => setRooms([]));
-  }, [authUser]);
+    getUsers();
+  }, [authUser, getUsers]);
 
   const handleSelectRoom = (room) => {
     setSelectedRoom(room);
@@ -36,6 +38,10 @@ const AdminRoomPage = () => {
     });
   };
 
+  const handleInviteOnlineUser = (userId) => {
+    setNewRoomMembers(prev => prev ? `${prev},${userId}` : userId);
+  };
+
   const handleChangeNickname = (memberId) => {
     api.put(`/admin/${selectedRoom._id}/nickname`, { memberId, nickname })
       .then(res => {
@@ -50,63 +56,91 @@ const AdminRoomPage = () => {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold mb-2">Admin Room Management</h2>
-      <div className="mb-2 text-sm text-zinc-500">Logged in as <span className="font-semibold text-blue-600">{authUser?.fullName} ({authUser?.email})</span> <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded">Admin</span></div>
-      <div className="mb-4 text-xs text-zinc-400">You are the admin for rooms you create. Add members by their user IDs (find these in the contacts sidebar). Only admins can manage rooms and members here.</div>
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Room name"
-          value={newRoomName}
-          onChange={e => setNewRoomName(e.target.value)}
-          className="input input-bordered mr-2"
-        />
-        <input
-          type="text"
-          placeholder="Member IDs (comma separated)"
-          value={newRoomMembers}
-          onChange={e => setNewRoomMembers(e.target.value)}
-          className="input input-bordered mr-2"
-        />
-        <button className="btn btn-primary" onClick={handleCreateRoom}>Create Room</button>
-      </div>
-      <div className="flex gap-8">
-        <div>
-          <h3 className="font-semibold mb-2">Rooms You Admin</h3>
-          <ul>
-            {rooms.length === 0 && <li className="text-zinc-400">No rooms created yet.</li>}
-            {rooms.map(room => (
-              <li key={room._id}>
-                <button className="btn btn-sm btn-outline mb-2" onClick={() => handleSelectRoom(room)}>
-                  {room.name}
-                </button>
-              </li>
-            ))}
-          </ul>
+    <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-blue-900 to-gray-900 py-10 px-4">
+      <div className="w-full max-w-3xl bg-white/95 rounded-3xl shadow-2xl p-10 mb-10">
+        <h2 className="text-3xl font-extrabold text-blue-700 mb-4 tracking-tight">Admin Room Management</h2>
+        <div className="mb-4 text-lg text-gray-700 flex items-center gap-2">
+          <span>Logged in as</span>
+          <span className="font-bold text-blue-600">{authUser?.fullName}</span>
+          <span className="text-gray-500">({authUser?.email})</span>
+          <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Admin</span>
         </div>
-        {selectedRoom && (
-          <div>
-            <h3 className="font-semibold mb-2">Members in {selectedRoom.name}</h3>
-            <ul>
-              {members.length === 0 && <li className="text-zinc-400">No members in this room.</li>}
-              {members.map(member => (
-                <li key={member._id} className="mb-2 flex items-center gap-2">
-                  <span>{member.fullName} ({member.email})</span>
-                  <input
-                    type="text"
-                    placeholder="New nickname"
-                    value={nickname}
-                    onChange={e => setNickname(e.target.value)}
-                    className="input input-xs"
-                  />
-                  <button className="btn btn-xs btn-info" onClick={() => handleChangeNickname(member._id)}>Change Nickname</button>
-                  <button className="btn btn-xs btn-error" onClick={() => handleRemoveMember(member._id)}>Remove</button>
+        <div className="mb-8 text-base text-gray-500">You are the admin for rooms you create. Add members by their user IDs or invite online users below. Only admins can manage rooms and members here.</div>
+
+        {/* Online Users List for Inviting */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-blue-700 mb-2">Online Users</h3>
+          <div className="flex flex-wrap gap-4">
+            {users.filter(u => onlineUsers.includes(u._id) && u._id !== authUser._id).length === 0 && (
+              <span className="text-gray-400">No other users online.</span>
+            )}
+            {users.filter(u => onlineUsers.includes(u._id) && u._id !== authUser._id).map(user => (
+              <div key={user._id} className="flex items-center gap-2 bg-blue-50 rounded-xl px-4 py-2 shadow">
+                <img src={user.profilePic || "/avatar-placeholder.png"} alt={user.fullName} className="w-8 h-8 rounded-full object-cover" />
+                <span className="font-medium text-blue-800">{user.fullName}</span>
+                <button className="btn btn-xs bg-blue-600 text-white rounded px-3 py-1 font-semibold hover:bg-blue-700" onClick={() => handleInviteOnlineUser(user._id)}>Invite</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Room Creation Section */}
+        <div className="flex flex-col md:flex-row gap-6 mb-10 items-center">
+          <input
+            type="text"
+            placeholder="Room name"
+            value={newRoomName}
+            onChange={e => setNewRoomName(e.target.value)}
+            className="flex-1 px-5 py-3 rounded-xl border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-800 bg-white shadow-lg text-lg"
+          />
+          <input
+            type="text"
+            placeholder="Member IDs (comma separated)"
+            value={newRoomMembers}
+            onChange={e => setNewRoomMembers(e.target.value)}
+            className="flex-1 px-5 py-3 rounded-xl border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-800 bg-white shadow-lg text-lg"
+          />
+          <button className="px-8 py-3 rounded-xl bg-blue-700 text-white font-bold shadow-lg hover:bg-blue-800 transition text-lg" onClick={handleCreateRoom}>Create Room</button>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-10">
+          <div className="flex-1">
+            <h3 className="font-semibold text-xl text-blue-700 mb-4">Rooms You Admin</h3>
+            <ul className="space-y-3">
+              {rooms.length === 0 && <li className="text-gray-400">No rooms created yet.</li>}
+              {rooms.map(room => (
+                <li key={room._id}>
+                  <button className="w-full text-left px-5 py-3 rounded-xl bg-blue-100 text-blue-800 font-semibold shadow-lg hover:bg-blue-200 transition text-lg" onClick={() => handleSelectRoom(room)}>
+                    {room.name}
+                  </button>
                 </li>
               ))}
             </ul>
           </div>
-        )}
+          {selectedRoom && (
+            <div className="flex-1">
+              <h3 className="font-semibold text-xl text-blue-700 mb-4">Members in {selectedRoom.name}</h3>
+              <ul className="space-y-3">
+                {members.length === 0 && <li className="text-gray-400">No members in this room.</li>}
+                {members.map(member => (
+                  <li key={member._id} className="flex items-center gap-4 bg-gray-100 rounded-xl px-5 py-3 shadow-lg">
+                    <img src={member.profilePic || "/avatar-placeholder.png"} alt={member.fullName} className="w-8 h-8 rounded-full object-cover" />
+                    <span className="font-semibold text-gray-800">{member.fullName} <span className="text-xs text-gray-500">({member.email})</span></span>
+                    <input
+                      type="text"
+                      placeholder="New nickname"
+                      value={nickname}
+                      onChange={e => setNickname(e.target.value)}
+                      className="input input-xs px-3 py-2 rounded-xl border border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-400 text-gray-700 text-base"
+                    />
+                    <button className="btn btn-xs bg-blue-600 text-white rounded px-4 py-2 font-semibold hover:bg-blue-700" onClick={() => handleChangeNickname(member._id)}>Change Nickname</button>
+                    <button className="btn btn-xs bg-red-600 text-white rounded px-4 py-2 font-semibold hover:bg-red-700" onClick={() => handleRemoveMember(member._id)}>Remove</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
