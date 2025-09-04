@@ -2,6 +2,7 @@
 
 "use client";
 import { useEffect, useState } from "react";
+import ChatBox from "../../components/ChatBox";
 
 export default function AdminRoomsPage() {
   const [rooms, setRooms] = useState([]);
@@ -84,12 +85,24 @@ export default function AdminRoomsPage() {
     }
   };
 
-  // Invite user to room (simulate)
+  // Invite user to room (real backend)
   const handleInvite = async () => {
     if (!selectedRoom || !inviteUserId) return;
-    // Replace with your backend invite endpoint
-    alert(`Invited user ${inviteUserId} to room ${selectedRoom.name}`);
-    setInviteUserId("");
+    try {
+      const res = await fetch(`https://translatechatapp.onrender.com/api/admin/${selectedRoom._id}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: inviteUserId }),
+      });
+      if (!res.ok) throw new Error("Failed to invite user");
+      // Refresh members list
+      fetch(`https://translatechatapp.onrender.com/api/admin/${selectedRoom._id}/members`)
+        .then(res => res.json())
+        .then(data => setMembers(data));
+      setInviteUserId("");
+    } catch (err) {
+      setError("❌ Error inviting user: " + err.message);
+    }
   };
 
   if (loading) return <div className="p-6 text-lg">Loading rooms...</div>;
@@ -167,12 +180,15 @@ export default function AdminRoomsPage() {
               <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={handleInvite}>Invite</button>
             </div>
 
-            {/* Real chat box placeholder */}
-            <div className="mt-8 p-6 rounded-xl bg-gray-50 shadow-lg">
+            {/* Real chat box */}
+            <div className="mt-8 p-0 rounded-xl bg-gray-50 shadow-lg">
               <h4 className="font-bold text-blue-700 mb-2">Chat Room: {selectedRoom.name}</h4>
-              <div className="border rounded-lg p-0 bg-white min-h-[120px] text-gray-700">
-                {/* Replace with your real ChatBox component */}
-                <div className="p-4 text-gray-500">Chat functionality coming soon...</div>
+              <div className="border rounded-lg bg-white min-h-[120px] text-gray-700">
+                <ChatBox
+                  user={{ _id: adminId, fullName: "Admin" }}
+                  room={selectedRoom}
+                  members={members}
+                />
               </div>
             </div>
           </div>
