@@ -9,6 +9,10 @@ export default function AdminRoomsPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [inviteUserId, setInviteUserId] = useState("");
 
   // Get adminId from localStorage (set after login)
   const [adminId, setAdminId] = useState("");
@@ -39,6 +43,28 @@ export default function AdminRoomsPage() {
     if (adminId) fetchRooms();
   }, [adminId]);
 
+  // Fetch online users (simulate for demo)
+  useEffect(() => {
+    // Replace with your backend endpoint for online users
+    setOnlineUsers([
+      { _id: "1", fullName: "Alice" },
+      { _id: "2", fullName: "Bob" },
+      { _id: "3", fullName: "Charlie" },
+    ]);
+  }, []);
+
+  // Fetch members for selected room
+  useEffect(() => {
+    if (!selectedRoom) {
+      setMembers([]);
+      return;
+    }
+    fetch(`https://translatechatapp.onrender.com/api/admin/${selectedRoom._id}/members`)
+      .then(res => res.json())
+      .then(data => setMembers(data))
+      .catch(() => setMembers([]));
+  }, [selectedRoom]);
+
   // Create a new room
   const createRoom = async (e) => {
     e.preventDefault();
@@ -58,11 +84,19 @@ export default function AdminRoomsPage() {
     }
   };
 
+  // Invite user to room (simulate)
+  const handleInvite = async () => {
+    if (!selectedRoom || !inviteUserId) return;
+    // Replace with your backend invite endpoint
+    alert(`Invited user ${inviteUserId} to room ${selectedRoom.name}`);
+    setInviteUserId("");
+  };
+
   if (loading) return <div className="p-6 text-lg">Loading rooms...</div>;
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Admin Rooms</h1>
+    <div className="p-6 max-w-5xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Admin Room Dashboard</h1>
       {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-xl text-center font-semibold">{error}</div>}
 
       {/* Create Room Form */}
@@ -92,22 +126,62 @@ export default function AdminRoomsPage() {
         </button>
       </form>
 
-      {/* Room List */}
-      {rooms.length === 0 ? (
-        <p>No rooms yet. Create one above!</p>
-      ) : (
-        <ul className="space-y-3">
-          {rooms.map((room) => (
-            <li
-              key={room._id}
-              className="border rounded-lg p-4 hover:bg-gray-100 transition"
-            >
-              <h2 className="font-semibold">{room.name}</h2>
-              <p className="text-sm text-gray-600">{room.description}</p>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="flex gap-10">
+        {/* Room List */}
+        <div className="flex-1">
+          <h2 className="font-semibold text-xl text-blue-700 mb-4">Rooms You Admin</h2>
+          <ul className="space-y-3">
+            {rooms.length === 0 && <li className="text-gray-400">No rooms yet. Create one above!</li>}
+            {rooms.map(room => (
+              <li key={room._id}>
+                <button className="w-full text-left px-5 py-3 rounded-xl bg-blue-100 text-blue-800 font-semibold shadow-lg hover:bg-blue-200 transition text-lg" onClick={() => setSelectedRoom(room)}>
+                  {room.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Room Details */}
+        {selectedRoom ? (
+          <div className="flex-1">
+            <h2 className="font-semibold text-xl text-blue-700 mb-4">Members in {selectedRoom.name}</h2>
+            <ul className="space-y-3">
+              {members.length === 0 && <li className="text-gray-400">No members in this room yet. Invite users below.</li>}
+              {members.map(member => (
+                <li key={member._id} className="flex items-center gap-4 bg-gray-100 rounded-xl px-5 py-3 shadow-lg">
+                  <span className="font-semibold text-gray-800">{member.fullName}</span>
+                </li>
+              ))}
+            </ul>
+
+            {/* Online Users & Invite */}
+            <div className="mt-8">
+              <h3 className="font-semibold text-lg text-blue-700 mb-2">Invite Online User</h3>
+              <select value={inviteUserId} onChange={e => setInviteUserId(e.target.value)} className="border rounded p-2 w-full mb-2">
+                <option value="">Select user...</option>
+                {onlineUsers.map(user => (
+                  <option key={user._id} value={user._id}>{user.fullName}</option>
+                ))}
+              </select>
+              <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={handleInvite}>Invite</button>
+            </div>
+
+            {/* Real chat box placeholder */}
+            <div className="mt-8 p-6 rounded-xl bg-gray-50 shadow-lg">
+              <h4 className="font-bold text-blue-700 mb-2">Chat Room: {selectedRoom.name}</h4>
+              <div className="border rounded-lg p-0 bg-white min-h-[120px] text-gray-700">
+                {/* Replace with your real ChatBox component */}
+                <div className="p-4 text-gray-500">Chat functionality coming soon...</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-400 text-lg">
+            Select a room to view members, invite users, and chat.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
