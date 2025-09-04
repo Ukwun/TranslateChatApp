@@ -65,9 +65,9 @@ const AdminRoomPage = () => {
           <span className="text-gray-500">({authUser?.email})</span>
           <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Admin</span>
         </div>
-        <div className="mb-8 text-base text-gray-500">You are the admin for rooms you create. Add members by their user IDs or invite online users below. Only admins can manage rooms and members here.</div>
+  <div className="mb-8 text-base text-gray-500">You are the admin for rooms you create. Add members by their user IDs or invite online users below. Only admins can manage rooms and members here.<br /><span className="text-blue-600 font-semibold">Online users are shown below. Click 'Invite' to add them to your new room before creating it.</span></div>
 
-        {/* Online Users List for Inviting */}
+        {/* Online Users List for Inviting (always visible) */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-blue-700 mb-2">Online Users</h3>
           <div className="flex flex-wrap gap-4">
