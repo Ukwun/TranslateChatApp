@@ -1,17 +1,18 @@
 // server/index.js (or server.js)
 import express from "express";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
-import connectDB from "./lib/db.js";
-import authRoutes from "./routes/auth.route.js";
-import messageRoutes from "./routes/message.route.js";
-
+import dotenv from "dotenv";
 dotenv.config();
+
+import connectDB from "./lib/db.js";
+import authRoutes from "./routes/auth.routes.js";
+import messageRoutes from "./routes/message.routes.js";
+import adminRoutes from "./routes/admin.route.js";
 
 const app = express();
 const server = createServer(app);
@@ -35,23 +36,64 @@ const allowedOrigins = [
   "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:5174",
+  "http://localhost:5000",
+  "https://ukwunapp.netlify.app/",
 ];
 
 const corsOptions = {
-  origin(origin, cb) {
-    // allow requests with no origin (like curl/postman) or whitelisted origins
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+  origin: function (origin, cb) {
+    // Always allow Netlify frontend and localhost
+    if (!origin || allowedOrigins.includes(origin) || origin?.includes('netlify.app')) return cb(null, true);
     return cb(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
+// Handle preflight OPTIONS requests for all routes
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || allowedOrigins[0]);
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 app.use(cors(corsOptions));
 
 /* -------------------------- SOCKET.IO SETUP ------------------------- */
 
+import jwt from "jsonwebtoken";
 const io = new Server(server, {
-  cors: corsOptions, // Reuse the same CORS options
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  },
+});
+
+// Socket.IO JWT auth middleware
+io.use((socket, next) => {
+  let token = socket.handshake.auth?.token;
+  if (!token && socket.handshake.headers?.cookie) {
+    // Try to get token from cookies
+    const match = socket.handshake.headers.cookie.match(/jwt=([^;]+)/);
+    if (match) token = match[1];
+  }
+  if (!token) return next(new Error("Authentication error: No token provided"));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.userId;
+    // Auto-join user room
+    socket.join(socket.userId);
+    next();
+  } catch (err) {
+    next(new Error("Authentication error: Invalid token"));
+  }
 });
 
 // Attach io to req so it can be accessed in controllers
@@ -62,12 +104,7 @@ app.use((req, res, next) => {
 
 // Socket.IO events
 io.on("connection", (socket) => {
-  console.log("🔌 User connected:", socket.id);
-
-  socket.on("join", (userId) => {
-    socket.join(userId); // join room with userId
-    console.log(`✅ User ${userId} joined their room`);
-  });
+  console.log("🔌 User connected:", socket.id, "userId:", socket.userId);
 
   // Typing indicator
   socket.on("typing", (receiverId) => {
@@ -89,6 +126,21 @@ app.get("/", (_req, res) => {
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/admin", adminRoutes);
+
+// Debug endpoint for sockets
+app.get("/debug/sockets", (req, res) => {
+  try {
+    const sockets = Array.from(io.sockets.sockets.values()).map(s => ({
+      id: s.id,
+      userId: s.userId,
+      rooms: Array.from(s.rooms),
+    }));
+    res.json({ count: sockets.length, sockets });
+  } catch (err) {
+    res.status(500).json({ message: "error", err });
+  }
+});
 
 /* ----------------------------- 404 HANDLER ---------------------------- */
 app.use((req, res, next) => {

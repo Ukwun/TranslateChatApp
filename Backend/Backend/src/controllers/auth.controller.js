@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/user.model.js";
+import ChatRoom from "../models/chatroom.model.js";
 import { v2 as cloudinary } from "cloudinary";
 // Ensure Cloudinary is configured before any upload
 import dotenv from "dotenv";
@@ -13,14 +14,13 @@ cloudinary.config({
 
 // Signup Controller
 export const signup = async (req, res) => {
-  const { fullName, email, password, gender, language } = req.body;
+  const { fullName, email, password, gender, language, roomId } = req.body;
 
   try {
-
-    if(!fullName || !email || !password || !gender || !language) {
+    if (!fullName || !email || !password || !gender || !language || !roomId) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    
+
     // validate password length
     if (!password || password.length < 6) {
       return res
@@ -45,48 +45,64 @@ export const signup = async (req, res) => {
       password: hashedPassword,
       gender,
       language,
+      role: "member",
     });
 
-        if (newUser) {
-            // ... (generate token and save user)
+    if (newUser) {
+      await newUser.save();
 
-            await newUser.save();
-            // ... (send response)
-        } else {
-            res.status(400).json({ message: "Invalid user data" });
-        }
-    } catch (error) {
-        // ... (error handling)
+      // Add user to chat room
+      await ChatRoom.findByIdAndUpdate(roomId, {
+        $addToSet: { members: newUser._id },
+      });
+
+      // Generate token
+      const token = generateToken(newUser._id, res);
+
+      // Send response
+      return res.status(201).json({
+        _id: newUser._id,
+        fullName: newUser.fullName,
+        email: newUser.email,
+        profilePic: newUser.profilePic,
+        token: token,
+      });
+    } else {
+      res.status(400).json({ message: "Invalid user data" });
     }
+  } catch (error) {
+    console.error("Error in signup controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
 
 // Login Controller
 export const login = async (req, res) => {
-    console.log("Login attempt with body:", req.body); // <-- Add this line
+  console.log("Login attempt with body:", req.body); // <-- Add this line
   try {
-		const { email, password } = req.body;
+    const { email, password } = req.body;
 
-		// 1. Find the user by their email, which is used during signup
-		const user = await User.findOne({ email });
+    // 1. Find the user by their email, which is used during signup
+    const user = await User.findOne({ email });
 
-		let isPasswordCorrect = false;
-		// if user is not found compare a dummy password to prevent timing attacks
-		if (!user) {
-			try {
-				await bcrypt.compare(
-					"dummyPassword",
-					"$2a$10$9xy9vE8tk4fbJ.7y9XBqZeWX7hJcnT86Z0HyvHHtzE//9KzZKeUtm"
-				);
-			} catch (dummyCompareError) {
-				console.error("Dummy password comparison error:", dummyCompareError);
-				return res
-					.status(500)
-					.json({ message: "Internal Server Error during dummy password comparison" });
-			}
-			return res.status(400).json({ message: "Invalid credentials" });
-		}
+    let isPasswordCorrect = false;
+    // if user is not found compare a dummy password to prevent timing attacks
+    if (!user) {
+      try {
+        await bcrypt.compare(
+          "dummyPassword",
+          "$2a$10$9xy9vE8tk4fbJ.7y9XBqZeWX7hJcnT86Z0HyvHHtzE//9KzZKeUtm"
+        );
+      } catch (dummyCompareError) {
+        console.error("Dummy password comparison error:", dummyCompareError);
+        return res
+          .status(500)
+          .json({ message: "Internal Server Error during dummy password comparison" });
+      }
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-		// 2. Use bcrypt.compare to check passwords.
+    // 2. Use bcrypt.compare to check passwords.
     try {
       isPasswordCorrect = await bcrypt.compare(password, user.password);
     } catch (error) {
@@ -94,25 +110,24 @@ export const login = async (req, res) => {
       return res.status(500).json({ message: "Internal Server Error" });
     }
 
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-		if (!isPasswordCorrect) {
-			return res.status(400).json({ message: "Invalid credentials" });
-		}
+    // If credentials are correct, generate a token and send the response.
+    const token = generateToken(user._id, res);
 
-		// If credentials are correct, generate a token and send the response.
-		const token = generateToken(user._id, res);
-
-		res.status(200).json({
-			_id: user._id,
-			fullName: user.fullName,
-			email: user.email,
-			profilePic: user.profilePic,
-			token: token,
-		});
-	} catch (error) {
-		console.error("Error in login controller", error.message);
-		res.status(500).json({ message: "Internal Server Error" });
-	}
+    res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      profilePic: user.profilePic,
+      token: token,
+    });
+  } catch (error) {
+    console.error("Error in login controller", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
 
 // Logout Controller
@@ -125,7 +140,6 @@ export const logout = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 
 // Add this new function and export it
 export const updateProfile = async (req, res) => {
@@ -177,8 +191,7 @@ export const updateProfile = async (req, res) => {
     console.log("❌ Error in updateProfile controller:", error.message);
     res.status(500).json({ message: "Internal Server Error" });
   }
-  };
-
+};
 
 // Check Auth Status Controller
 export const checkAuth = async (req, res) => {
