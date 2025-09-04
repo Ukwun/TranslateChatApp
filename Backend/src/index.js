@@ -41,16 +41,16 @@ const allowedOrigins = [
   "https://ukwunapp.netlify.app",
 ];
 
-const corsOptions = {
-  origin: function (origin, cb) {
-    // Allow all origins for socket.io polling transport
-    if (!origin || allowedOrigins.includes(origin) || origin?.includes('netlify.app')) return cb(null, true);
-    return cb(new Error(`CORS blocked for origin: ${origin}`));
-  },
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", allowedOrigins.find(o => req.headers.origin?.includes(o)) || req.headers.origin || "*");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 /* -------------------------- SOCKET.IO SETUP ------------------------- */
 
