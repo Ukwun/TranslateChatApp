@@ -11,7 +11,7 @@ const AdminRoomPage = () => {
   const [members, setMembers] = useState([]);
   const [nickname, setNickname] = useState("");
   const [newRoomName, setNewRoomName] = useState("");
-  const [newRoomMembers, setNewRoomMembers] = useState("");
+  const [invitedUserIds, setInvitedUserIds] = useState([]);
 
   useEffect(() => {
     api.get(`/admin/rooms?adminId=${authUser?._id}`)
@@ -30,16 +30,17 @@ const AdminRoomPage = () => {
   const handleCreateRoom = () => {
     api.post("/admin/create", {
       name: newRoomName,
-      memberIds: newRoomMembers.split(",").map(id => id.trim()),
+      memberIds: invitedUserIds,
     }).then(res => {
       setRooms([...rooms, res.data]);
+      setSelectedRoom(res.data); // Show chat UI for new room
       setNewRoomName("");
-      setNewRoomMembers("");
+      setInvitedUserIds([]);
     });
   };
 
   const handleInviteOnlineUser = (userId) => {
-    setNewRoomMembers(prev => prev ? `${prev},${userId}` : userId);
+    setInvitedUserIds(prev => prev.includes(userId) ? prev : [...prev, userId]);
   };
 
   const handleChangeNickname = (memberId) => {
@@ -65,7 +66,7 @@ const AdminRoomPage = () => {
           <span className="text-gray-500">({authUser?.email})</span>
           <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Admin</span>
         </div>
-  <div className="mb-8 text-base text-gray-500">You are the admin for rooms you create. Add members by their user IDs or invite online users below. Only admins can manage rooms and members here.<br /><span className="text-blue-600 font-semibold">Online users are shown below. Click 'Invite' to add them to your new room before creating it.</span></div>
+        <div className="mb-8 text-base text-gray-500">You are the admin for rooms you create. Invite online users below before creating your room. Only admins can manage rooms and members here.<br /><span className="text-blue-600 font-semibold">Online users are shown below. Click 'Invite' to add them to your new room before creating it.</span></div>
 
         {/* Online Users List for Inviting (always visible) */}
         <div className="mb-8">
@@ -78,7 +79,9 @@ const AdminRoomPage = () => {
               <div key={user._id} className="flex items-center gap-2 bg-blue-50 rounded-xl px-4 py-2 shadow">
                 <img src={user.profilePic || "/avatar-placeholder.png"} alt={user.fullName} className="w-8 h-8 rounded-full object-cover" />
                 <span className="font-medium text-blue-800">{user.fullName}</span>
-                <button className="btn btn-xs bg-blue-600 text-white rounded px-3 py-1 font-semibold hover:bg-blue-700" onClick={() => handleInviteOnlineUser(user._id)}>Invite</button>
+                <button className={`btn btn-xs ${invitedUserIds.includes(user._id) ? 'bg-green-600' : 'bg-blue-600'} text-white rounded px-3 py-1 font-semibold hover:bg-blue-700`} onClick={() => handleInviteOnlineUser(user._id)}>
+                  {invitedUserIds.includes(user._id) ? 'Invited' : 'Invite'}
+                </button>
               </div>
             ))}
           </div>
@@ -91,13 +94,6 @@ const AdminRoomPage = () => {
             placeholder="Room name"
             value={newRoomName}
             onChange={e => setNewRoomName(e.target.value)}
-            className="flex-1 px-5 py-3 rounded-xl border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-800 bg-white shadow-lg text-lg"
-          />
-          <input
-            type="text"
-            placeholder="Member IDs (comma separated)"
-            value={newRoomMembers}
-            onChange={e => setNewRoomMembers(e.target.value)}
             className="flex-1 px-5 py-3 rounded-xl border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-800 bg-white shadow-lg text-lg"
           />
           <button className="px-8 py-3 rounded-xl bg-blue-700 text-white font-bold shadow-lg hover:bg-blue-800 transition text-lg" onClick={handleCreateRoom}>Create Room</button>
@@ -138,6 +134,11 @@ const AdminRoomPage = () => {
                   </li>
                 ))}
               </ul>
+              {/* Chat box for the room (placeholder) */}
+              <div className="mt-8 p-6 rounded-xl bg-gray-50 shadow-lg">
+                <h4 className="font-bold text-blue-700 mb-2">Chat Room: {selectedRoom.name}</h4>
+                <div className="border rounded-lg p-4 bg-white min-h-[120px] text-gray-700">Chat box coming soon...</div>
+              </div>
             </div>
           )}
         </div>
