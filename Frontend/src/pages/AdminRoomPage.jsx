@@ -1,10 +1,7 @@
+import React, { useEffect, useState } from "react";
+import ChatBox from "../components/ChatBox";
 
-
-"use client";
-import { useEffect, useState } from "react";
-import ChatBox from "../../components/ChatBox";
-
-export default function AdminRoomsPage() {
+export default function AdminRoomPage() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
@@ -18,7 +15,6 @@ export default function AdminRoomsPage() {
   // Get adminId from localStorage (set after login)
   const [adminId, setAdminId] = useState("");
   useEffect(() => {
-    // SSR-safe localStorage access
     if (typeof window !== "undefined") {
       try {
         const user = JSON.parse(window.localStorage.getItem("authUser"));
@@ -51,7 +47,6 @@ export default function AdminRoomsPage() {
 
   // Fetch online users (simulate for demo)
   useEffect(() => {
-    // Replace with your backend endpoint for online users
     setOnlineUsers([
       { _id: "1", fullName: "Alice" },
       { _id: "2", fullName: "Bob" },
@@ -100,7 +95,6 @@ export default function AdminRoomsPage() {
         body: JSON.stringify({ userId: inviteUserId }),
       });
       if (!res.ok) throw new Error("Failed to invite user");
-      // Refresh members list
       fetch(`https://translatechatapp.onrender.com/api/admin/${selectedRoom._id}/members`)
         .then(res => res.json())
         .then(data => setMembers(data));
@@ -117,8 +111,6 @@ export default function AdminRoomsPage() {
     <div className="p-6 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Admin Room Dashboard</h1>
       {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-xl text-center font-semibold">{error}</div>}
-
-      {/* Create Room Form */}
       <form
         onSubmit={createRoom}
         className="space-y-4 mb-8 border p-4 rounded-lg shadow"
@@ -144,9 +136,7 @@ export default function AdminRoomsPage() {
           Create Room
         </button>
       </form>
-
       <div className="flex gap-10">
-        {/* Room List */}
         <div className="flex-1">
           <h2 className="font-semibold text-xl text-blue-700 mb-4">Rooms You Admin</h2>
           <ul className="space-y-3">
@@ -160,8 +150,6 @@ export default function AdminRoomsPage() {
             ))}
           </ul>
         </div>
-
-        {/* Room Details */}
         {selectedRoom ? (
           <div className="flex-1">
             <h2 className="font-semibold text-xl text-blue-700 mb-4">Members in {selectedRoom.name}</h2>
@@ -173,8 +161,6 @@ export default function AdminRoomsPage() {
                 </li>
               ))}
             </ul>
-
-            {/* Online Users & Invite */}
             <div className="mt-8">
               <h3 className="font-semibold text-lg text-blue-700 mb-2">Invite Online User</h3>
               <select value={inviteUserId} onChange={e => setInviteUserId(e.target.value)} className="border rounded p-2 w-full mb-2">
@@ -185,8 +171,6 @@ export default function AdminRoomsPage() {
               </select>
               <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={handleInvite}>Invite</button>
             </div>
-
-            {/* Real chat box */}
             <div className="mt-8 p-0 rounded-xl bg-gray-50 shadow-lg">
               <h4 className="font-bold text-blue-700 mb-2">Chat Room: {selectedRoom.name}</h4>
               <div className="border rounded-lg bg-white min-h-[120px] text-gray-700">
