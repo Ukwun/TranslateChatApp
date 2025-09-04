@@ -1,31 +1,14 @@
 {
-<<<<<<< HEAD
-  "private": true,
-  "workspaces": [
-    "Frontend",
-    "Backend"
-  ],
-  "scripts": {
-    "dev": "concurrently \"npm run dev --prefix Frontend\" \"npm run dev --prefix Backend\""
-  },
-  "dependencies": {
-    "autoprefixer": "^10.4.21",
-    "axios": "^1.11.0",
-    "daisyui": "^5.0.54",
-    "franc": "^6.2.0",
-    "langs": "^2.0.0",
-    "node-fetch": "^2.6.7"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
-=======
   "name": "backend",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "start": "nodemon server.js",
-    "dev": "nodemon server.js"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "engines": {
+    "node": "20.x"
   },
   "keywords": [],
   "author": "",
@@ -38,15 +21,17 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "franc": "^6.2.0",
     "jsonwebtoken": "^9.0.2",
+    "langs": "^2.0.0",
     "mongoose": "^8.4.0",
     "morgan": "^1.10.1",
     "multer": "^1.4.5-lts.1",
     "node-fetch": "^3.3.2",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "axios": "^1.6.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
->>>>>>> ef87f14 (Initial commit - translate chat app)
   }
 }
