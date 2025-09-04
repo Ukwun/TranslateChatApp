@@ -1,6 +1,6 @@
 
-"use client";
 
+"use client";
 import { useEffect, useState } from "react";
 
 export default function AdminRoomsPage() {
@@ -8,43 +8,53 @@ export default function AdminRoomsPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
 
-  // Fetch all rooms
+  // Get adminId from localStorage (set after login)
+  const [adminId, setAdminId] = useState("");
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("authUser"));
+    if (user && user._id) setAdminId(user._id);
+  }, []);
+
+  // Fetch rooms for this admin
   const fetchRooms = async () => {
+    if (!adminId) return;
+    setLoading(true);
     try {
-      const res = await fetch("https://translatechatapp.onrender.com/api/rooms");
+      const res = await fetch(`https://translatechatapp.onrender.com/api/admin/rooms?adminId=${adminId}`);
+      if (!res.ok) throw new Error("Failed to fetch rooms");
       const data = await res.json();
       setRooms(data);
+      setError("");
     } catch (err) {
-      console.error("❌ Failed to fetch rooms:", err);
+      setError("❌ Failed to fetch rooms: " + err.message);
+      setRooms([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRooms();
-  }, []);
+    if (adminId) fetchRooms();
+  }, [adminId]);
 
   // Create a new room
   const createRoom = async (e) => {
     e.preventDefault();
+    if (!adminId) return;
     try {
-      const res = await fetch("https://translatechatapp.onrender.com/api/rooms", {
+      const res = await fetch(`https://translatechatapp.onrender.com/api/admin/rooms`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, description }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description, adminId, invitedUserIds: [] }),
       });
-
       if (!res.ok) throw new Error("Failed to create room");
-
       setName("");
       setDescription("");
-      fetchRooms(); // refresh the list
+      fetchRooms();
     } catch (err) {
-      console.error("❌ Error creating room:", err);
+      setError("❌ Error creating room: " + err.message);
     }
   };
 
@@ -53,6 +63,7 @@ export default function AdminRoomsPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Admin Rooms</h1>
+      {error && <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-xl text-center font-semibold">{error}</div>}
 
       {/* Create Room Form */}
       <form
