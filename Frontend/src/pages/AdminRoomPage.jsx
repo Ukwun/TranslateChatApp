@@ -30,7 +30,10 @@ const AdminRoomPage = () => {
     if (!authUser?._id) return;
     api.get(`/admin/rooms?adminId=${authUser._id}`)
       .then(res => setRooms(res.data))
-      .catch(() => setRooms([]));
+      .catch((err) => {
+        setRooms([]);
+        // Optionally show error message
+      });
     getUsers();
   }, [authUser, getUsers]);
 
@@ -91,18 +94,16 @@ const AdminRoomPage = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-blue-900 to-gray-900 py-10 px-4">
       <div className="w-full max-w-3xl bg-white/95 rounded-3xl shadow-2xl p-10 mb-10">
-        {/* ...existing code... */}
         <h2 className="text-3xl font-extrabold text-blue-700 mb-4 tracking-tight">Admin Room Management</h2>
-        {/* ...existing code... */}
         <div className="mb-4 text-lg text-gray-700 flex items-center gap-2">
           <span>Logged in as</span>
           <span className="font-bold text-blue-600">{authUser?.fullName}</span>
           <span className="text-gray-500">({authUser?.email})</span>
           <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Admin</span>
         </div>
-        {/* ...existing code... */}
         <div className="mb-8 text-base text-gray-500">You are the admin for rooms you create. Invite online users below before creating your room. Only admins can manage rooms and members here.<br /><span className="text-blue-600 font-semibold">Online users are shown below. Click 'Invite' to add them to your new room before creating it.</span></div>
-        {/* ...existing code... */}
+
+        {/* Online Users List for Inviting (always visible) */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-blue-700 mb-2">Online Users</h3>
           <div className="flex flex-wrap gap-4">
@@ -120,7 +121,8 @@ const AdminRoomPage = () => {
             ))}
           </div>
         </div>
-        {/* ...existing code... */}
+
+        {/* Room Creation Section */}
         <div className="flex flex-col md:flex-row gap-6 mb-10 items-center">
           <input
             type="text"
@@ -131,12 +133,12 @@ const AdminRoomPage = () => {
           />
           <button className="px-8 py-3 rounded-xl bg-blue-700 text-white font-bold shadow-lg hover:bg-blue-800 transition text-lg" onClick={handleCreateRoom}>Create Room</button>
         </div>
-        {/* ...existing code... */}
+
         <div className="flex flex-col md:flex-row gap-10">
           <div className="flex-1">
             <h3 className="font-semibold text-xl text-blue-700 mb-4">Rooms You Admin</h3>
             <ul className="space-y-3">
-              {rooms.length === 0 && <li className="text-gray-400">No rooms created yet.</li>}
+              {rooms.length === 0 && <li className="text-gray-400">No rooms created yet. Create a room above to get started.</li>}
               {rooms.map(room => (
                 <li key={room._id}>
                   <button className="w-full text-left px-5 py-3 rounded-xl bg-blue-100 text-blue-800 font-semibold shadow-lg hover:bg-blue-200 transition text-lg" onClick={() => handleSelectRoom(room)}>
@@ -146,11 +148,11 @@ const AdminRoomPage = () => {
               ))}
             </ul>
           </div>
-          {selectedRoom && (
+          {selectedRoom ? (
             <div className="flex-1">
               <h3 className="font-semibold text-xl text-blue-700 mb-4">Members in {selectedRoom.name}</h3>
               <ul className="space-y-3">
-                {members.length === 0 && <li className="text-gray-400">No members in this room.</li>}
+                {members.length === 0 && <li className="text-gray-400">No members in this room yet. Invite users to join.</li>}
                 {members.map(member => (
                   <li key={member._id} className="flex items-center gap-4 bg-gray-100 rounded-xl px-5 py-3 shadow-lg">
                     <img src={member.profilePic || "/avatar-placeholder.png"} alt={member.fullName} className="w-8 h-8 rounded-full object-cover" />
@@ -179,6 +181,10 @@ const AdminRoomPage = () => {
                   />
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-gray-400 text-lg">
+              Select a room to view members and chat.
             </div>
           )}
         </div>
