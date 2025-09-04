@@ -51,7 +51,9 @@ const AdminRoomPage = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">Admin Room Management</h2>
+      <h2 className="text-xl font-bold mb-2">Admin Room Management</h2>
+      <div className="mb-2 text-sm text-zinc-500">Logged in as <span className="font-semibold text-blue-600">{authUser?.fullName} ({authUser?.email})</span> <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded">Admin</span></div>
+      <div className="mb-4 text-xs text-zinc-400">You are the admin for rooms you create. Add members by their user IDs (find these in the contacts sidebar). Only admins can manage rooms and members here.</div>
       <div className="mb-6">
         <input
           type="text"
@@ -71,8 +73,9 @@ const AdminRoomPage = () => {
       </div>
       <div className="flex gap-8">
         <div>
-          <h3 className="font-semibold mb-2">Rooms</h3>
+          <h3 className="font-semibold mb-2">Rooms You Admin</h3>
           <ul>
+            {rooms.length === 0 && <li className="text-zinc-400">No rooms created yet.</li>}
             {rooms.map(room => (
               <li key={room._id}>
                 <button className="btn btn-sm btn-outline mb-2" onClick={() => handleSelectRoom(room)}>
@@ -86,6 +89,7 @@ const AdminRoomPage = () => {
           <div>
             <h3 className="font-semibold mb-2">Members in {selectedRoom.name}</h3>
             <ul>
+              {members.length === 0 && <li className="text-zinc-400">No members in this room.</li>}
               {members.map(member => (
                 <li key={member._id} className="mb-2 flex items-center gap-2">
                   <span>{member.fullName} ({member.email})</span>
