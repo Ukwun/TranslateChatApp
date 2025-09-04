@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from "../api/api";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
+import ChatBox from "../components/ChatBox";
 
 const AdminRoomPage = () => {
   const { authUser, onlineUsers } = useAuthStore();
@@ -134,10 +135,17 @@ const AdminRoomPage = () => {
                   </li>
                 ))}
               </ul>
-              {/* Chat box for the room (placeholder) */}
+              {/* Real chat box for the room */}
               <div className="mt-8 p-6 rounded-xl bg-gray-50 shadow-lg">
                 <h4 className="font-bold text-blue-700 mb-2">Chat Room: {selectedRoom.name}</h4>
-                <div className="border rounded-lg p-4 bg-white min-h-[120px] text-gray-700">Chat box coming soon...</div>
+                <div className="border rounded-lg p-0 bg-white min-h-[120px] text-gray-700">
+                  <ChatBox
+                    user={authUser}
+                    currentChatUser={null} // will be handled in ChatBox for room
+                    room={selectedRoom}
+                    members={members}
+                  />
+                </div>
               </div>
             </div>
           )}

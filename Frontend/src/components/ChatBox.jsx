@@ -20,7 +20,7 @@ if (!window._chatSocket) {
 }
 socket = window._chatSocket;
 
-export default function ChatBox({ user, currentChatUser }) {
+export default function ChatBox({ user, currentChatUser, room, members }) {
   const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
@@ -31,52 +31,76 @@ export default function ChatBox({ user, currentChatUser }) {
   const imageInputRef = useRef(null);
   const { theme } = useThemeStore();
 
-  // Fetch messages for both users
+  // Fetch messages for both users or for a room
   useEffect(() => {
     const getMessages = async () => {
-      if (!user?._id || !currentChatUser?._id) return;
       setMessages([]);
       try {
-        // Always fetch conversation using both user IDs
-        const res = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
-        setMessages(res.data);
+        if (room) {
+          // Fetch all messages for the room (between all members)
+          // We'll use the first two members for compatibility
+          const mainUserId = user?._id;
+          // Pick another member (not self) for API compatibility
+          const otherMember = members?.find(m => m._id !== mainUserId);
+          if (!mainUserId || !otherMember?._id) return;
+          const res = await api.get(`/messages/conversation/${mainUserId}/${otherMember._id}?roomId=${room._id}`);
+          setMessages(res.data);
+        } else if (user?._id && currentChatUser?._id) {
+          // 1:1 chat fallback
+          const res = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
+          setMessages(res.data);
+        }
       } catch (error) {
         toast.error(error.response?.data?.message || "Failed to fetch messages");
         console.error("Failed to fetch messages:", error);
       }
     };
     getMessages();
-  }, [user, currentChatUser]);
+  }, [user, currentChatUser, room, members]);
 
-  // Socket.IO listeners
+  // Socket.IO listeners for room or 1:1 chat
   useEffect(() => {
-    if (!user?._id || !currentChatUser?._id) return;
-    // No need to emit join, server auto-joins
-    const handleNewMessage = async () => {
-      // Always fetch conversation using both user IDs
-      try {
-        const res = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
-        setMessages(res.data);
-      } catch (error) {
-        toast.error("Failed to sync messages");
-      }
-    };
-
-    const handleTyping = (typingUserId) => {
-      if (typingUserId === currentChatUser._id) {
-        setIsTyping(true);
-        setTimeout(() => setIsTyping(false), 1500);
-      }
-    };
-
-    socket.on("new_message", handleNewMessage);
-    socket.on("typing", handleTyping);
-
-    return () => {
-      socket.off("new_message", handleNewMessage);
-      socket.off("typing", handleTyping);
-    };
-  }, [user, currentChatUser]);
+    if (room) {
+      // Listen for new messages in the room
+      const handleNewMessage = async () => {
+        const mainUserId = user?._id;
+        const otherMember = members?.find(m => m._id !== mainUserId);
+        if (!mainUserId || !otherMember?._id) return;
+        try {
+          const res = await api.get(`/messages/conversation/${mainUserId}/${otherMember._id}?roomId=${room._id}`);
+          setMessages(res.data);
+        } catch (error) {
+          toast.error("Failed to sync messages");
+        }
+      };
+      socket.on("new_message", handleNewMessage);
+      return () => {
+        socket.off("new_message", handleNewMessage);
+      };
+    } else if (user?._id && currentChatUser?._id) {
+      // 1:1 chat fallback
+      const handleNewMessage = async () => {
+        try {
+          const res = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
+          setMessages(res.data);
+        } catch (error) {
+          toast.error("Failed to sync messages");
+        }
+      };
+      const handleTyping = (typingUserId) => {
+        if (typingUserId === currentChatUser._id) {
+          setIsTyping(true);
+          setTimeout(() => setIsTyping(false), 1500);
+        }
+      };
+      socket.on("new_message", handleNewMessage);
+      socket.on("typing", handleTyping);
+      return () => {
+        socket.off("new_message", handleNewMessage);
+        socket.off("typing", handleTyping);
+      };
+    }
+  }, [user, currentChatUser, room, members]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -91,25 +115,48 @@ export default function ChatBox({ user, currentChatUser }) {
     setIsSending(true);
     try {
       let convRes;
-      if (image) {
-        // Send image message
-        const form = new FormData();
-        form.append("image", imageInputRef.current.files[0]);
-        form.append("receiverId", currentChatUser._id);
-        await api.post("/messages/send-image", form, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+      if (room) {
+        // Room-based messaging: send to all members except self
+        const mainUserId = user?._id;
+        const otherMember = members?.find(m => m._id !== mainUserId);
+        if (!mainUserId || !otherMember?._id) throw new Error("No other member in room");
+        if (image) {
+          const form = new FormData();
+          form.append("image", imageInputRef.current.files[0]);
+          form.append("receiverId", otherMember._id);
+          form.append("roomId", room._id);
+          await api.post(`/messages/send-image`, form, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        }
+        if (text.trim()) {
+          await api.post(`/messages/send-text`, {
+            receiverId: otherMember._id,
+            text,
+            roomId: room._id,
+          });
+        }
+        convRes = await api.get(`/messages/conversation/${mainUserId}/${otherMember._id}?roomId=${room._id}`);
+        setMessages(convRes.data);
+      } else if (user?._id && currentChatUser?._id) {
+        // 1:1 chat fallback
+        if (image) {
+          const form = new FormData();
+          form.append("image", imageInputRef.current.files[0]);
+          form.append("receiverId", currentChatUser._id);
+          await api.post("/messages/send-image", form, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+        }
+        if (text.trim()) {
+          await api.post("/messages/send-text", {
+            receiverId: currentChatUser._id,
+            text,
+          });
+        }
+        convRes = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
+        setMessages(convRes.data);
       }
-      if (text.trim()) {
-        // Send text message
-        await api.post("/messages/send-text", {
-          receiverId: currentChatUser._id,
-          text,
-        });
-      }
-      // After sending, fetch the full conversation
-      convRes = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
-      setMessages(convRes.data);
       setText("");
       setImage(null);
       if (imageInputRef.current) {
@@ -137,7 +184,16 @@ export default function ChatBox({ user, currentChatUser }) {
   // Emit typing event
   const handleTyping = (e) => {
     setText(e.target.value);
-    socket.emit("typing", currentChatUser._id);
+    if (room) {
+      // Notify all other members
+      const mainUserId = user?._id;
+      const otherMember = members?.find(m => m._id !== mainUserId);
+      if (otherMember?._id) {
+        socket.emit("typing", otherMember._id);
+      }
+    } else if (currentChatUser?._id) {
+      socket.emit("typing", currentChatUser._id);
+    }
   };
 
   return (
@@ -145,17 +201,35 @@ export default function ChatBox({ user, currentChatUser }) {
       {/* Chat Header with typing indicator */}
       <div className="px-4 py-3 border-b border-gray-700 bg-black flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: theme }}>
-            {currentChatUser.profilePic ? (
-              <img src={currentChatUser.profilePic} alt="Profile" className="w-full h-full object-cover rounded-full" />
-            ) : (
-              currentChatUser.fullName?.charAt(0) || "U"
-            )}
-          </div>
-          <div>
-            <h3 className="font-medium text-lg text-white">{currentChatUser.fullName}</h3>
-            <p className="text-xs text-white">{t('online')}</p>
-          </div>
+          {room ? (
+            <>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: theme }}>
+                {room.name.charAt(0)}
+              </div>
+              <div>
+                <h3 className="font-medium text-lg text-white">{room.name}</h3>
+                <div className="flex gap-2 mt-1">
+                  {members?.map(m => (
+                    <img key={m._id} src={m.profilePic || "/avatar-placeholder.png"} alt={m.fullName} className="w-6 h-6 rounded-full object-cover border-2 border-white" title={m.fullName} />
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: theme }}>
+                {currentChatUser?.profilePic ? (
+                  <img src={currentChatUser.profilePic} alt="Profile" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  currentChatUser?.fullName?.charAt(0) || "U"
+                )}
+              </div>
+              <div>
+                <h3 className="font-medium text-lg text-white">{currentChatUser?.fullName}</h3>
+                <p className="text-xs text-white">{t('online')}</p>
+              </div>
+            </>
+          )}
         </div>
         {isTyping && (
           <div className="flex items-center gap-2">
