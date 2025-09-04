@@ -28,16 +28,23 @@ const AdminRoomPage = () => {
       .catch(() => setMembers([]));
   };
 
-  const handleCreateRoom = () => {
-    api.post("/admin/create", {
-      name: newRoomName,
-      memberIds: invitedUserIds,
-    }).then(res => {
-      setRooms([...rooms, res.data]);
-      setSelectedRoom(res.data); // Show chat UI for new room
+  const handleCreateRoom = async () => {
+    try {
+      const res = await api.post("/admin/create", {
+        name: newRoomName,
+        memberIds: invitedUserIds,
+      });
+      const newRoom = res.data;
+      setRooms([...rooms, newRoom]);
+      setSelectedRoom(newRoom); // Show chat UI for new room
       setNewRoomName("");
       setInvitedUserIds([]);
-    });
+      // Fetch members for the new room so chat box is ready
+      const membersRes = await api.get(`/admin/${newRoom._id}/members`);
+      setMembers(membersRes.data);
+    } catch (err) {
+      // Optionally show error
+    }
   };
 
   const handleInviteOnlineUser = (userId) => {
