@@ -6,7 +6,7 @@ import { useChatStore } from "../store/useChatStore";
 import ChatBox from "../components/ChatBox";
 
 const AdminRoomPage = () => {
-  const { authUser, onlineUsers, checkAuth } = useAuthStore();
+  const { authUser, onlineUsers, checkAuth, isCheckingAuth } = useAuthStore();
   const navigate = useNavigate();
   const { users, getUsers } = useChatStore();
   const [rooms, setRooms] = useState([]);
@@ -17,15 +17,14 @@ const AdminRoomPage = () => {
   const [invitedUserIds, setInvitedUserIds] = useState([]);
 
   useEffect(() => {
-    // Check authentication on page load
-    const checkAuthentication = async () => {
-      await checkAuth();
-      if (!localStorage.getItem("chat-user-token") || !authUser?._id) {
-        navigate("/login");
-      }
-    };
-    checkAuthentication();
-  }, [checkAuth, authUser, navigate]);
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    if (!isCheckingAuth && (!authUser || !authUser._id)) {
+      navigate("/login");
+    }
+  }, [isCheckingAuth, authUser, navigate]);
 
   useEffect(() => {
     if (!authUser?._id) return;
@@ -78,19 +77,30 @@ const AdminRoomPage = () => {
       .then(res => setMembers(res.data.members));
   };
 
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-900 to-gray-900">
+        <span className="text-2xl text-blue-700 font-bold">Loading...</span>
+      </div>
+    );
+  }
+
+  // ...existing code...
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-blue-900 to-gray-900 py-10 px-4">
       <div className="w-full max-w-3xl bg-white/95 rounded-3xl shadow-2xl p-10 mb-10">
+        {/* ...existing code... */}
         <h2 className="text-3xl font-extrabold text-blue-700 mb-4 tracking-tight">Admin Room Management</h2>
+        {/* ...existing code... */}
         <div className="mb-4 text-lg text-gray-700 flex items-center gap-2">
           <span>Logged in as</span>
           <span className="font-bold text-blue-600">{authUser?.fullName}</span>
           <span className="text-gray-500">({authUser?.email})</span>
           <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">Admin</span>
         </div>
+        {/* ...existing code... */}
         <div className="mb-8 text-base text-gray-500">You are the admin for rooms you create. Invite online users below before creating your room. Only admins can manage rooms and members here.<br /><span className="text-blue-600 font-semibold">Online users are shown below. Click 'Invite' to add them to your new room before creating it.</span></div>
-
-        {/* Online Users List for Inviting (always visible) */}
+        {/* ...existing code... */}
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-blue-700 mb-2">Online Users</h3>
           <div className="flex flex-wrap gap-4">
@@ -108,8 +118,7 @@ const AdminRoomPage = () => {
             ))}
           </div>
         </div>
-
-        {/* Room Creation Section */}
+        {/* ...existing code... */}
         <div className="flex flex-col md:flex-row gap-6 mb-10 items-center">
           <input
             type="text"
@@ -120,7 +129,7 @@ const AdminRoomPage = () => {
           />
           <button className="px-8 py-3 rounded-xl bg-blue-700 text-white font-bold shadow-lg hover:bg-blue-800 transition text-lg" onClick={handleCreateRoom}>Create Room</button>
         </div>
-
+        {/* ...existing code... */}
         <div className="flex flex-col md:flex-row gap-10">
           <div className="flex-1">
             <h3 className="font-semibold text-xl text-blue-700 mb-4">Rooms You Admin</h3>
