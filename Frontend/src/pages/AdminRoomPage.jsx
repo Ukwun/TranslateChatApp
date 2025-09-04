@@ -7,6 +7,16 @@ import ChatBox from "../components/ChatBox";
 
 const AdminRoomPage = () => {
   const { authUser, onlineUsers, checkAuth, isCheckingAuth } = useAuthStore();
+  // Placeholder handlers to prevent blank page
+  const handleChangeNickname = (memberId) => {
+    // TODO: Implement nickname change logic
+    alert("Change nickname feature coming soon!");
+  };
+
+  const handleRemoveMember = (memberId) => {
+    // TODO: Implement remove member logic
+    alert("Remove member feature coming soon!");
+  };
   const navigate = useNavigate();
   const { users, getUsers } = useChatStore();
   const [rooms, setRooms] = useState([]);
