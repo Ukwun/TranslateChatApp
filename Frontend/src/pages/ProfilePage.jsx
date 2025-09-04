@@ -132,8 +132,9 @@ const ProfilePage = () => {
 					</div>
 				</div>
 
-				<div className='mt-8 flex justify-center'>
+				<div className='mt-8 flex justify-center gap-4'>
 					<GoToChatButton onClick={handleGoToChat}>{t('chatRoom')}</GoToChatButton>
+					<GoToChatButton style={{ backgroundColor: '#2563eb', marginLeft: '12px' }} onClick={() => navigate('/admin-rooms')}>Create Room</GoToChatButton>
 				</div>
 			</div>
 
