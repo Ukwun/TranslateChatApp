@@ -28,7 +28,16 @@ export default function AdminRoomPage() {
     if (!adminId) return;
     setLoading(true);
     try {
-      const res = await fetch(`https://translatechatapp.onrender.com/api/admin/rooms?adminId=${adminId}`);
+      const token = window.localStorage.getItem("chat-user-token");
+      const res = await fetch(`https://translatechatapp.onrender.com/api/admin/rooms?adminId=${adminId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          credentials: "include"
+        }
+      );
       if (!res.ok) throw new Error("Failed to fetch rooms");
       const data = await res.json();
       setRooms(data);
