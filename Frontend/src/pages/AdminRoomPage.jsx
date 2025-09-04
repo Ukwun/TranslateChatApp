@@ -55,6 +55,8 @@ const AdminRoomPage = () => {
       // Fetch members for the new room so chat box is ready
       const membersRes = await api.get(`/admin/${newRoom._id}/members`);
       setMembers(membersRes.data);
+      // Redirect to /admin-rooms to ensure correct route
+      navigate("/admin-rooms");
     } catch (err) {
       // Optionally show error
     }
