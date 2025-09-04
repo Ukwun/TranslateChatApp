@@ -18,8 +18,13 @@ export default function AdminRoomsPage() {
   // Get adminId from localStorage (set after login)
   const [adminId, setAdminId] = useState("");
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("authUser"));
-    if (user && user._id) setAdminId(user._id);
+    // SSR-safe localStorage access
+    if (typeof window !== "undefined") {
+      try {
+        const user = JSON.parse(window.localStorage.getItem("authUser"));
+        if (user && user._id) setAdminId(user._id);
+      } catch {}
+    }
   }, []);
 
   // Fetch rooms for this admin
@@ -106,6 +111,7 @@ export default function AdminRoomsPage() {
   };
 
   if (loading) return <div className="p-6 text-lg">Loading rooms...</div>;
+  if (!adminId) return <div className="p-6 text-lg text-red-600">Please log in as admin to view rooms.</div>;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
