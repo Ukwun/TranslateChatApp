@@ -13,6 +13,7 @@ import connectDB from "./lib/db.js";
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 import adminRoutes from "./routes/admin.route.js";
+import roomsRoutes from "./routes/rooms.route.js";
 
 const app = express();
 const server = createServer(app);
@@ -106,6 +107,7 @@ app.get("/", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/rooms", roomsRoutes);
 
 /* ----------------------------- 404 HANDLER ---------------------------- */
 app.use((req, res, next) => {
