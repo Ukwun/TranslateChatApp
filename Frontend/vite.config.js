@@ -8,16 +8,19 @@ export default defineConfig({
 	server: {
 		port: 3000,
 		proxy: {
-					"/api": {
-						target: "http://localhost:5000", // Your backend server address
-						changeOrigin: true,
-					},
-					
-					"/socket.io": {
-						target: "http://localhost:5000",
-						ws: true,
-						changeOrigin: true,
-					},					
+			"/api": {
+				target: "http://localhost:5000", // Your backend server address
+				changeOrigin: true,
+			},
+            
+			"/socket.io": {
+				target: "http://localhost:5000",
+				ws: true,
+				changeOrigin: true,
+			},                    
 		},
+	},
+	build: {
+		minify: false,
 	},
 });
