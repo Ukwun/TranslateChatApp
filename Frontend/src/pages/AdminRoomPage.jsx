@@ -30,11 +30,13 @@ const AdminRoomPage = () => {
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+    console.log("authUser:", authUser);
+  }, [checkAuth, authUser]);
 
   useEffect(() => {
     if (!isCheckingAuth && (!authUser || !authUser._id)) {
-      navigate("/login");
+      setError("Authentication failed. Please log in again.");
+      // navigate("/login");
     }
   }, [isCheckingAuth, authUser, navigate]);
 
