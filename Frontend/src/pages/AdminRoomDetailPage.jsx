@@ -79,18 +79,7 @@ export default function AdminRoomDetailPage() {
     setMembers(room.members || []);
   }, [room]);
 
-  // Invite user to room (real backend)
-  const handleInvite = async () => {
-    if (!room || !inviteUserId) return;
-    try {
-      // Add user to room members (simulate backend logic)
-      setMembers(prev => [...prev, onlineUsers.find(u => u._id === inviteUserId)]);
-      setInviteUserId("");
-      alert(`Invited user to room!`);
-    } catch (err) {
-      alert("Failed to invite user");
-    }
-  };
+  // ...existing code...
 
   // Select user to chat with
   const handleSelectChatUser = (user) => {
