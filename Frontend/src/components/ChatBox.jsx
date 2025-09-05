@@ -51,7 +51,11 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
           setMessages(res.data);
         }
       } catch (error) {
-        toast.error(error.response?.data?.message || "Failed to fetch messages");
+        if (error.response?.status === 404) {
+          toast.error("Room not found.");
+        } else {
+          toast.error(error.response?.data?.message || "Failed to fetch messages");
+        }
         console.error("Failed to fetch messages:", error);
       }
     };
