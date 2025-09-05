@@ -36,15 +36,15 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
     const getMessages = async () => {
       setMessages([]);
       try {
-        if (room) {
+        if (room && members?.length > 1) {
           // Fetch all messages for the room (between all members)
-          // We'll use the first two members for compatibility
           const mainUserId = user?._id;
-          // Pick another member (not self) for API compatibility
-          const otherMember = members?.find(m => m._id !== mainUserId);
-          if (!mainUserId || !otherMember?._id) return;
-          const res = await api.get(`/messages/conversation/${mainUserId}/${otherMember._id}?roomId=${room._id}`);
-          setMessages(res.data);
+          // Fetch messages for all member pairs
+          const promises = members
+            .filter(m => m._id !== mainUserId)
+            .map(m => api.get(`/messages/conversation/${mainUserId}/${m._id}?roomId=${room._id}`));
+          const results = await Promise.all(promises);
+          setMessages(results.flatMap(r => r.data));
         } else if (user?._id && currentChatUser?._id) {
           // 1:1 chat fallback
           const res = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
@@ -115,29 +115,36 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
     setIsSending(true);
     try {
       let convRes;
-      if (room) {
+      if (room && members?.length > 1) {
         // Room-based messaging: send to all members except self
         const mainUserId = user?._id;
-        const otherMember = members?.find(m => m._id !== mainUserId);
-        if (!mainUserId || !otherMember?._id) throw new Error("No other member in room");
-        if (image) {
-          const form = new FormData();
-          form.append("image", imageInputRef.current.files[0]);
-          form.append("receiverId", otherMember._id);
-          form.append("roomId", room._id);
-          await api.post(`/messages/send-image`, form, {
-            headers: { "Content-Type": "multipart/form-data" },
+        const sendPromises = members
+          .filter(m => m._id !== mainUserId)
+          .map(async m => {
+            if (image) {
+              const form = new FormData();
+              form.append("image", imageInputRef.current.files[0]);
+              form.append("receiverId", m._id);
+              form.append("roomId", room._id);
+              await api.post(`/messages/send-image`, form, {
+                headers: { "Content-Type": "multipart/form-data" },
+              });
+            }
+            if (text.trim()) {
+              await api.post(`/messages/send-text`, {
+                receiverId: m._id,
+                text,
+                roomId: room._id,
+              });
+            }
           });
-        }
-        if (text.trim()) {
-          await api.post(`/messages/send-text`, {
-            receiverId: otherMember._id,
-            text,
-            roomId: room._id,
-          });
-        }
-        convRes = await api.get(`/messages/conversation/${mainUserId}/${otherMember._id}?roomId=${room._id}`);
-        setMessages(convRes.data);
+        await Promise.all(sendPromises);
+        // Fetch all messages for all member pairs
+        const fetchPromises = members
+          .filter(m => m._id !== mainUserId)
+          .map(m => api.get(`/messages/conversation/${mainUserId}/${m._id}?roomId=${room._id}`));
+        const results = await Promise.all(fetchPromises);
+        setMessages(results.flatMap(r => r.data));
       } else if (user?._id && currentChatUser?._id) {
         // 1:1 chat fallback
         if (image) {
