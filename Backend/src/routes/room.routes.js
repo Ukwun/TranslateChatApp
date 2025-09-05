@@ -1,3 +1,10 @@
+import express from "express";
+import ChatRoom from "../models/chatroom.model.js";
+
+const router = express();
+
+
+
 // ✅ Delete room by ID
 router.delete("/:roomId", async (req, res) => {
   try {
@@ -9,10 +16,6 @@ router.delete("/:roomId", async (req, res) => {
     res.status(500).json({ error: "Failed to delete room" });
   }
 });
-import express from "express";
-import ChatRoom from "../models/chatroom.model.js";
-
-const router = express.Router();
 
 // ✅ Create room
 router.post("/", async (req, res) => {
@@ -70,4 +73,4 @@ router.post('/:roomId/invite', async (req, res) => {
   }
 });
 
-export default router;
+module.exports = router;
