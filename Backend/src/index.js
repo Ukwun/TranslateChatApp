@@ -13,7 +13,7 @@ import connectDB from "./lib/db.js";
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 import adminRoutes from "./routes/admin.route.js";
-import roomRoutes from "./routes/room.routes.js"; // 🔥 renamed to match singular "room.route.js"
+import roomRoutes from "./routes/room.routes.js";
 
 dotenv.config();
 
@@ -40,19 +40,19 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://ukwun.netlify.app",
-  "https://translatechatapp.onrender.com",
   "https://www.ukwun.netlify.app",
   "https://ukwunapp.netlify.app",
+  "https://translatechatapp.onrender.com",
 ];
 
-// ✅ Use cors() properly
+// ✅ Apply CORS before routes
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, origin);
       } else {
-        callback(null, allowedOrigins[0]); // default fallback
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
@@ -74,13 +74,6 @@ const io = new Server(server, {
     origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: [
-      "Origin",
-      "X-Requested-With",
-      "Content-Type",
-      "Accept",
-      "Authorization",
-    ],
   },
 });
 
