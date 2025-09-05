@@ -1,7 +1,7 @@
 import express from "express";
 import ChatRoom from "../models/chatroom.model.js";
 
-const router = express();
+const router = express.Router();
 
 
 
