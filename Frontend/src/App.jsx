@@ -9,6 +9,7 @@ import SettingsPage from './pages/SettingsPage.jsx';
 import ChatHomePage from './pages/ChatHomePage.jsx';
 import ProfilePage from "./pages/ProfilePage.jsx";
 import AdminRoomPage from "./pages/AdminRoomPage.jsx";
+import AdminRoomDetailPage from "./pages/AdminRoomDetailPage.jsx";
 import { useAuthStore } from './store/useAuthStore.js';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import api from './api/api.js';
