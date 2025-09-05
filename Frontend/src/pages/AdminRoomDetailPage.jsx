@@ -14,10 +14,13 @@ export default function AdminRoomDetailPage() {
   // Get roomId from URL
   const roomId = window.location.pathname.split("/").pop();
 
+  // ✅ Fetch room details
   useEffect(() => {
     async function fetchRoom() {
       try {
-        const res = await fetch(`https://translatechatapp.onrender.com/api/rooms/${roomId}`);
+        const res = await fetch(
+          `https://translatechatapp.onrender.com/api/rooms/${roomId}`
+        );
         if (!res.ok) throw new Error("Room not found");
         const data = await res.json();
         setRoom(data);
@@ -30,39 +33,48 @@ export default function AdminRoomDetailPage() {
     fetchRoom();
   }, [roomId]);
 
+  // ✅ Fetch online users
   useEffect(() => {
     async function fetchOnlineUsers() {
       try {
         const token = window.localStorage.getItem("chat-user-token");
-        const res = await fetch("https://translatechatapp.onrender.com/api/messages/users", {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          credentials: "include"
-        });
+        const res = await fetch(
+          "https://translatechatapp.onrender.com/api/messages/users",
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            credentials: "include",
+          }
+        );
         const data = await res.json();
         setOnlineUsers(data);
-      } catch (err) {
+      } catch {
         setOnlineUsers([]);
       }
     }
     fetchOnlineUsers();
   }, []);
+
+  // ✅ Invite user to room
   async function handleInvite() {
     if (!room || !inviteUserId) return;
     setError("");
     try {
       const token = window.localStorage.getItem("chat-user-token");
-      const res = await fetch(`https://translatechatapp.onrender.com/api/rooms/${roomId}/invite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ userId: inviteUserId }),
-        credentials: "include"
-      });
+      const res = await fetch(
+        `https://translatechatapp.onrender.com/api/rooms/${roomId}/invite`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ userId: inviteUserId }),
+          credentials: "include",
+        }
+      );
       if (!res.ok) throw new Error("Failed to invite user");
       const updatedRoom = await res.json();
       setRoom(updatedRoom);
@@ -72,17 +84,12 @@ export default function AdminRoomDetailPage() {
     }
   }
 
-  useEffect(() => {
-    if (!room) return;
-  }, [room]);
-
-  // ...existing code...
-
-  // Select user to chat with
+  // ✅ Select user to chat with
   const handleSelectChatUser = (user) => {
     setCurrentChatUser(user);
   };
 
+  // ✅ Loading / error / no room states
   if (loading) return <p>Loading room...</p>;
   if (error) return <p className="text-red-600">{error}</p>;
   if (!room) return <p>Room not found</p>;
@@ -91,40 +98,76 @@ export default function AdminRoomDetailPage() {
     <div className="p-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Room: {room.name}</h1>
       <p className="mb-4 text-gray-600">{room.description}</p>
+
+      {/* Members List */}
       <div className="mb-6">
         <h2 className="font-semibold text-lg mb-2">Members</h2>
         <ul className="space-y-2">
-          {members.length === 0 && <li className="text-gray-400">No members yet.</li>}
-          {room.members?.map(member => (
-            <li key={member._id} className="bg-gray-100 rounded px-4 py-2">{member.fullName || member._id}</li>
-             ))}
-        </ul>
-      </div>
-      <div className="mb-6">
-        <h2 className="font-semibold text-lg mb-2">Invite Online User</h2>
-        <select value={inviteUserId} onChange={e => setInviteUserId(e.target.value)} className="border rounded p-2 w-full mb-2">
-          <option value="">Select user...</option>
-          {onlineUsers.map(user => (
-            <option key={user._id} value={user._id}>{user.fullName}</option>
-          ))}
-        </select>
-        <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={handleInvite}>Invite</button>
-      </div>
-      <div className="mb-6">
-        <h2 className="font-semibold text-lg mb-2">Online Users</h2>
-        <ul className="space-y-2">
-          {onlineUsers.map(user => (
-            <li key={user._id} className="flex items-center gap-2">
-              <span>{user.fullName}</span>
-              <button className="ml-2 px-2 py-1 bg-blue-500 text-white rounded" onClick={() => handleSelectChatUser(user)}>Chat</button>
+          {room.members?.length === 0 && (
+            <li className="text-gray-400">No members yet.</li>
+          )}
+          {room.members?.map((member) => (
+            <li
+              key={member._id}
+              className="bg-gray-100 rounded px-4 py-2"
+            >
+              {member.fullName || member.username || member._id}
             </li>
           ))}
         </ul>
       </div>
+
+      {/* Invite Users */}
+      <div className="mb-6">
+        <h2 className="font-semibold text-lg mb-2">Invite Online User</h2>
+        <select
+          value={inviteUserId}
+          onChange={(e) => setInviteUserId(e.target.value)}
+          className="border rounded p-2 w-full mb-2"
+        >
+          <option value="">Select user...</option>
+          {onlineUsers.map((user) => (
+            <option key={user._id} value={user._id}>
+              {user.fullName || user.username}
+            </option>
+          ))}
+        </select>
+        <button
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          onClick={handleInvite}
+        >
+          Invite
+        </button>
+      </div>
+
+      {/* Online Users */}
+      <div className="mb-6">
+        <h2 className="font-semibold text-lg mb-2">Online Users</h2>
+        <ul className="space-y-2">
+          {onlineUsers.map((user) => (
+            <li key={user._id} className="flex items-center gap-2">
+              <span>{user.fullName || user.username}</span>
+              <button
+                className="ml-2 px-2 py-1 bg-blue-500 text-white rounded"
+                onClick={() => handleSelectChatUser(user)}
+              >
+                Chat
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Chat Box */}
       <div className="mb-6">
         <h2 className="font-semibold text-lg mb-2">Chat Box</h2>
         <div className="border rounded-lg bg-white min-h-[120px] text-gray-700">
-          <ChatBox user={{ _id: "admin", fullName: "Admin" }} currentChatUser={currentChatUser} room={room} members={room.members} />
+          <ChatBox
+            user={{ _id: "admin", fullName: "Admin" }}
+            currentChatUser={currentChatUser}
+            room={room}
+            members={room.members}
+          />
         </div>
       </div>
     </div>
