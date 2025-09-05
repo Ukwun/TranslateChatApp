@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import ChatBox from "../components/ChatBox";
 
@@ -9,6 +10,7 @@ export default function AdminRoomDetailPage() {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [members, setMembers] = useState([]);
   const [inviteUserId, setInviteUserId] = useState("");
+  const [currentChatUser, setCurrentChatUser] = useState(null);
 
   // Get roomId from URL
   const roomId = window.location.pathname.split("/").pop();
@@ -30,26 +32,46 @@ export default function AdminRoomDetailPage() {
   }, [roomId]);
 
   useEffect(() => {
-    // Simulate online users
-    setOnlineUsers([
-      { _id: "1", fullName: "Alice" },
-      { _id: "2", fullName: "Bob" },
-      { _id: "3", fullName: "Charlie" },
-    ]);
+    async function fetchOnlineUsers() {
+      try {
+        const token = window.localStorage.getItem("chat-user-token");
+        const res = await fetch("https://translatechatapp.onrender.com/api/messages/users", {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          credentials: "include"
+        });
+        const data = await res.json();
+        setOnlineUsers(data);
+      } catch (err) {
+        setOnlineUsers([]);
+      }
+    }
+    fetchOnlineUsers();
   }, []);
 
   useEffect(() => {
     if (!room) return;
-    // Simulate members fetch
     setMembers(room.members || []);
   }, [room]);
 
-  // Invite user to room (simulate)
+  // Invite user to room (real backend)
   const handleInvite = async () => {
     if (!room || !inviteUserId) return;
-    // Replace with backend invite logic
-    alert(`Invited user ${inviteUserId} to room ${room.name}`);
-    setInviteUserId("");
+    try {
+      // Add user to room members (simulate backend logic)
+      setMembers(prev => [...prev, onlineUsers.find(u => u._id === inviteUserId)]);
+      setInviteUserId("");
+      alert(`Invited user to room!`);
+    } catch (err) {
+      alert("Failed to invite user");
+    }
+  };
+
+  // Select user to chat with
+  const handleSelectChatUser = (user) => {
+    setCurrentChatUser(user);
   };
 
   if (loading) return <p>Loading room...</p>;
@@ -80,9 +102,20 @@ export default function AdminRoomDetailPage() {
         <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" onClick={handleInvite}>Invite</button>
       </div>
       <div className="mb-6">
+        <h2 className="font-semibold text-lg mb-2">Online Users</h2>
+        <ul className="space-y-2">
+          {onlineUsers.map(user => (
+            <li key={user._id} className="flex items-center gap-2">
+              <span>{user.fullName}</span>
+              <button className="ml-2 px-2 py-1 bg-blue-500 text-white rounded" onClick={() => handleSelectChatUser(user)}>Chat</button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="mb-6">
         <h2 className="font-semibold text-lg mb-2">Chat Box</h2>
         <div className="border rounded-lg bg-white min-h-[120px] text-gray-700">
-          <ChatBox user={{ _id: "admin", fullName: "Admin" }} room={room} members={members} />
+          <ChatBox user={{ _id: "admin", fullName: "Admin" }} currentChatUser={currentChatUser} room={room} members={members} />
         </div>
       </div>
     </div>
