@@ -8,7 +8,6 @@ export default function AdminRoomDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [members, setMembers] = useState([]);
   const [inviteUserId, setInviteUserId] = useState("");
   const [currentChatUser, setCurrentChatUser] = useState(null);
 
@@ -67,7 +66,6 @@ export default function AdminRoomDetailPage() {
       if (!res.ok) throw new Error("Failed to invite user");
       const updatedRoom = await res.json();
       setRoom(updatedRoom);
-      setMembers(updatedRoom.members || []);
       setInviteUserId("");
     } catch (err) {
       setError("Invite failed: " + err.message);
@@ -76,7 +74,6 @@ export default function AdminRoomDetailPage() {
 
   useEffect(() => {
     if (!room) return;
-    setMembers(room.members || []);
   }, [room]);
 
   // ...existing code...
@@ -98,9 +95,9 @@ export default function AdminRoomDetailPage() {
         <h2 className="font-semibold text-lg mb-2">Members</h2>
         <ul className="space-y-2">
           {members.length === 0 && <li className="text-gray-400">No members yet.</li>}
-          {members.map(member => (
+          {room.members?.map(member => (
             <li key={member._id} className="bg-gray-100 rounded px-4 py-2">{member.fullName || member._id}</li>
-          ))}
+             ))}
         </ul>
       </div>
       <div className="mb-6">
@@ -127,7 +124,7 @@ export default function AdminRoomDetailPage() {
       <div className="mb-6">
         <h2 className="font-semibold text-lg mb-2">Chat Box</h2>
         <div className="border rounded-lg bg-white min-h-[120px] text-gray-700">
-          <ChatBox user={{ _id: "admin", fullName: "Admin" }} currentChatUser={currentChatUser} room={room} members={members} />
+          <ChatBox user={{ _id: "admin", fullName: "Admin" }} currentChatUser={currentChatUser} room={room} members={room.members} />
         </div>
       </div>
     </div>
