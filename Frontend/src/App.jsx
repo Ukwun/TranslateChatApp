@@ -50,6 +50,7 @@ const App = () => {
           <Route path='/profile' element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path='/chat' element={<ProtectedRoute><ChatHomePage /></ProtectedRoute>} />
           <Route path='/admin-rooms' element={<ProtectedRoute><AdminRoomPage /></ProtectedRoute>} />
+          <Route path='/admin-rooms/:roomId' element={<ProtectedRoute><AdminRoomDetailPage /></ProtectedRoute>} />
         </Routes>
       </main>
       <Toaster />
