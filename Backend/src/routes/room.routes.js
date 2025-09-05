@@ -1,6 +1,6 @@
 // src/routes/room.routes.js
 import express from "express";
-import Room from "../models/room.model.js";
+import Room from "../models/chatroom.model.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
