@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import io from "socket.io-client";
+import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import { useThemeStore } from "../store/useThemeStore";
 import { useTranslation } from "react-i18next";
@@ -30,34 +30,34 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
           "http://localhost:5000",
         {
           withCredentials: true,
-          path: "/socket.io",
           transports: ["websocket", "polling"],
           auth: { token },
+          path: "/socket.io",
         }
       );
     }
-  }, []);
 
-  // ✅ Fetch messages for room or 1:1
+    if (room?._id) {
+      socket.emit("joinRoom", room._id);
+    } else if (user?._id) {
+      socket.emit("joinPrivate", user._id);
+    }
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [room, user]);
+
+  // ✅ Fetch messages
   useEffect(() => {
     const getMessages = async () => {
       setMessages([]);
       try {
-        if (room && members?.length > 1) {
-          const mainUserId = user?._id;
-          const promises = members
-            .filter((m) => m._id !== mainUserId)
-            .map((m) =>
-              api.get(
-                `/messages/conversation/${mainUserId}/${m._id}?roomId=${room._id}`
-              )
-            );
-          const results = await Promise.all(promises);
-          setMessages(results.flatMap((r) => r.data || []));
+        if (room?._id) {
+          const res = await api.get(`/messages/conversation/${room._id}`);
+          setMessages(res.data || []);
         } else if (user?._id && currentChatUser?._id) {
-          const res = await api.get(
-            `/messages/conversation/${user._id}/${currentChatUser._id}`
-          );
+          const res = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
           setMessages(res.data || []);
         }
       } catch (error) {
@@ -66,57 +66,34 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
         } else {
           toast.error(error.response?.data?.message || "Failed to fetch messages");
         }
-        console.error("Fetch messages error:", error);
+        console.error("❌ Fetch messages error:", error);
       }
     };
     getMessages();
-  }, [user, currentChatUser, room, members]);
+  }, [user, currentChatUser, room]);
 
   // ✅ Socket listeners
   useEffect(() => {
     if (!socket) return;
 
-    const handleNewMessage = async () => {
-      try {
-        if (room && members?.length > 1) {
-          const mainUserId = user?._id;
-          const promises = members
-            .filter((m) => m._id !== mainUserId)
-            .map((m) =>
-              api.get(
-                `/messages/conversation/${mainUserId}/${m._id}?roomId=${room._id}`
-              )
-            );
-          const results = await Promise.all(promises);
-          setMessages(results.flatMap((r) => r.data || []));
-        } else if (user?._id && currentChatUser?._id) {
-          const res = await api.get(
-            `/messages/conversation/${user._id}/${currentChatUser._id}`
-          );
-          setMessages(res.data || []);
-        }
-      } catch {
-        toast.error("Failed to sync messages");
-      }
-    };
+    socket.on("receiveMessage", (message) => {
+      setMessages((prev) => [...prev, message]);
+    });
 
-    const handleTyping = (typingUserId) => {
+    socket.on("typing", (typingUserId) => {
       if (typingUserId === currentChatUser?._id) {
         setIsTyping(true);
         setTimeout(() => setIsTyping(false), 1500);
       }
-    };
-
-    socket.on("new_message", handleNewMessage);
-    socket.on("typing", handleTyping);
+    });
 
     return () => {
-      socket.off("new_message", handleNewMessage);
-      socket.off("typing", handleTyping);
+      socket.off("receiveMessage");
+      socket.off("typing");
     };
-  }, [user, currentChatUser, room, members]);
+  }, [currentChatUser]);
 
-  // ✅ Auto-scroll on new messages
+  // ✅ Auto scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -130,44 +107,32 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
     setIsSending(true);
 
     try {
-      if (room && members?.length > 1) {
-        const mainUserId = user?._id;
-        const sendPromises = members
-          .filter((m) => m._id !== mainUserId)
-          .map(async (m) => {
-            if (image && imageInputRef.current?.files[0]) {
-              const form = new FormData();
-              form.append("image", imageInputRef.current.files[0]);
-              form.append("receiverId", m._id);
-              form.append("roomId", room._id);
-              await api.post("/messages/send-image", form, {
-                headers: { "Content-Type": "multipart/form-data" },
-              });
-            }
-            if (text.trim()) {
-              await api.post("/messages/send-text", {
-                receiverId: m._id,
-                text,
-                roomId: room._id,
-              });
-            }
-          });
-        await Promise.all(sendPromises);
-      } else if (user?._id && currentChatUser?._id) {
-        if (image && imageInputRef.current?.files[0]) {
-          const form = new FormData();
-          form.append("image", imageInputRef.current.files[0]);
-          form.append("receiverId", currentChatUser._id);
-          await api.post("/messages/send-image", form, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-        }
-        if (text.trim()) {
-          await api.post("/messages/send-text", {
-            receiverId: currentChatUser._id,
-            text,
-          });
-        }
+      let payload;
+      if (image && imageInputRef.current?.files[0]) {
+        const form = new FormData();
+        form.append("image", imageInputRef.current.files[0]);
+        if (room?._id) form.append("roomId", room._id);
+        if (currentChatUser?._id) form.append("receiverId", currentChatUser._id);
+
+        const res = await api.post("/messages/send-image", form, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        payload = res.data;
+      }
+
+      if (text.trim()) {
+        const body = {
+          text,
+          ...(room?._id ? { roomId: room._id } : {}),
+          ...(currentChatUser?._id ? { receiverId: currentChatUser._id } : {}),
+        };
+        const res = await api.post("/messages/send-text", body);
+        payload = res.data;
+      }
+
+      if (payload) {
+        setMessages((prev) => [...prev, payload]);
+        socket.emit("sendMessage", payload);
       }
 
       setText("");
@@ -175,9 +140,18 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
       if (imageInputRef.current) imageInputRef.current.value = "";
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to send message");
-      console.error("Send message error:", error);
+      console.error("❌ Send message error:", error);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleTyping = (e) => {
+    setText(e.target.value);
+    if (room?._id) {
+      socket.emit("typing", room._id);
+    } else if (currentChatUser?._id) {
+      socket.emit("typing", currentChatUser._id);
     }
   };
 
@@ -186,20 +160,9 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
     if (file) setImage(file);
   };
 
-  const handleTyping = (e) => {
-    setText(e.target.value);
-    if (room) {
-      const mainUserId = user?._id;
-      const otherMember = members?.find((m) => m._id !== mainUserId);
-      if (otherMember?._id) socket.emit("typing", otherMember._id);
-    } else if (currentChatUser?._id) {
-      socket.emit("typing", currentChatUser._id);
-    }
-  };
-
   return (
     <div className="flex flex-1 flex-col h-full bg-gradient-to-b from-gray-900 to-black text-white">
-      {/* Chat Header */}
+      {/* Header */}
       <div className="px-4 py-3 border-b border-gray-700 bg-black flex items-center justify-between">
         <div className="flex items-center gap-3">
           {room ? (
@@ -256,20 +219,19 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg) => {
-          const isReceived = msg.senderId !== user._id;
+          const isMine = msg.senderId === user._id;
           return (
             <div
               key={msg._id}
               className={`flex flex-col p-3 rounded-xl max-w-[70%] ${
-                msg.senderId === user._id ? "ml-auto" : "mr-auto"
+                isMine ? "ml-auto" : "mr-auto"
               }`}
               style={{
-                backgroundColor:
-                  msg.senderId === user._id ? theme : "#374151",
+                backgroundColor: isMine ? theme : "#374151",
                 color: "white",
               }}
             >
-              {isReceived && msg.translatedText ? (
+              {!isMine && msg.translatedText ? (
                 <>
                   <p className="text-white font-bold">{msg.translatedText}</p>
                   {msg.originalText && (
@@ -279,7 +241,7 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
                   )}
                 </>
               ) : (
-                msg.text && <p className="text-white">{msg.text}</p>
+                msg.text && <p>{msg.text}</p>
               )}
               {msg.image && (
                 <img
