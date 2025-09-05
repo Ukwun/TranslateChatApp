@@ -5,42 +5,43 @@ import ChatRoom from "../models/chatroom.model.js";
 import cloudinary from "../lib/cloudinary.js";
 import { translateText } from "../lib/translate.js";
 
-export const getUsersForSidebar = async(req, res) => {
-    try {
-        const loggedInUserId = req.user._id;
-        const filteredUsers = await User.find({ _id: { $ne:loggedInUserId } }).select("-password");
-
-        res.status(200).json(filteredUsers);
-    } catch (error) {
-        console.error("Error in getUsersForSidebar: ", error.message);
-        res.status(500).json({ error: "Internal Server Error"});
-    }
+// Sidebar users (excluding logged-in user)
+export const getUsersForSidebar = async (req, res) => {
+  try {
+    const loggedInUserId = req.user._id;
+    const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
+    res.status(200).json(filteredUsers);
+  } catch (error) {
+    console.error("❌ Error in getUsersForSidebar:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 };
 
-
-// Get messages in a conversation
+// Get messages (supports both direct chat & room chat)
 export const getMessages = async (req, res) => {
   try {
     const senderId = req.user._id;
     const receiverId = req.params.id;
     const { roomId } = req.query;
 
-    // Restrict to members/admins of the room
     if (roomId) {
-      const room = await ChatRoom.findById(roomId);
-      if (!room || !room.members.includes(senderId) || !room.members.includes(receiverId)) {
+      // Fetch messages from a room
+      const room = await ChatRoom.findById(roomId).populate("messages");
+      if (!room) {
+        return res.status(404).json({ message: "Room not found" });
+      }
+      if (!room.members.includes(senderId)) {
         return res.status(403).json({ message: "Access denied: Not a member of this room." });
       }
+      return res.status(200).json(room.messages);
     }
 
+    // Fetch direct conversation messages
     const conversation = await Conversation.findOne({
       participants: { $all: [senderId, receiverId] },
     }).populate("messages");
 
-    if (!conversation) {
-      return res.status(200).json([]);
-    }
-
+    if (!conversation) return res.status(200).json([]);
     res.status(200).json(conversation.messages);
   } catch (error) {
     console.error("❌ Error in getMessages controller:", error.message);
@@ -48,86 +49,99 @@ export const getMessages = async (req, res) => {
   }
 };
 
-
-// Send message
+// Send message (to user or to room)
 export const sendMessage = async (req, res) => {
   try {
     const senderId = req.user._id;
-    const receiverId = req.params.id;
+    const receiverId = req.params.id; // Used in direct chat
     const { text, image, roomId } = req.body;
-
-    // Restrict to members/admins of the room
-    if (roomId) {
-      const room = await ChatRoom.findById(roomId);
-      if (!room || !room.members.includes(senderId) || !room.members.includes(receiverId)) {
-        return res.status(403).json({ message: "Access denied: Not a member of this room." });
-      }
-    }
 
     let imageUrl;
     if (image) {
-      // Upload base64 image to cloudinary
       const uploadResponse = await cloudinary.uploader.upload(image);
       imageUrl = uploadResponse.secure_url;
     }
 
-    // Get receiver's language and map to readable name for OpenAI
-    const receiver = await User.findById(receiverId);
-    const langMap = {
-      en: "English",
-      ko: "Korean",
-      fr: "French",
-      es: "Spanish",
-      de: "German",
-      zh: "Chinese",
-      ja: "Japanese",
-      ru: "Russian",
-      it: "Italian"
-    };
-    const targetLangCode = receiver?.language || "en";
-    const targetLangName = langMap[targetLangCode] || "English";
+    let translatedText = text || "";
+    let originalText = text || "";
 
-    // Always translate text to receiver's preferred language
-    let translatedText = text;
-    let originalText = text;
-    if (text && targetLangCode) {
-      try {
-        // Only skip translation if sender and receiver language are the same
-        const sender = await User.findById(senderId);
-        const senderLang = sender?.language || "en";
-        if (targetLangCode !== senderLang) {
+    if (receiverId) {
+      // Translate for direct messages
+      const receiver = await User.findById(receiverId);
+      const langMap = {
+        en: "English",
+        ko: "Korean",
+        fr: "French",
+        es: "Spanish",
+        de: "German",
+        zh: "Chinese",
+        ja: "Japanese",
+        ru: "Russian",
+        it: "Italian",
+      };
+      const targetLangCode = receiver?.language || "en";
+      const targetLangName = langMap[targetLangCode] || "English";
+
+      const sender = await User.findById(senderId);
+      const senderLang = sender?.language || "en";
+
+      if (text && targetLangCode !== senderLang) {
+        try {
           translatedText = await translateText(text, targetLangName, process.env.OPENAI_API_KEY);
+        } catch (err) {
+          console.error("❌ Translation error:", err.message);
         }
-      } catch (err) {
-        console.error("Translation error:", err.message);
       }
     }
 
-    let conversation = await Conversation.findOne({
-      participants: { $all: [senderId, receiverId] },
-    });
+    let newMessage;
 
-    if (!conversation) {
-      conversation = await Conversation.create({
-        participants: [senderId, receiverId],
-        messages: [],
+    if (roomId) {
+      // Save message in a room
+      const room = await ChatRoom.findById(roomId);
+      if (!room) return res.status(404).json({ message: "Room not found" });
+      if (!room.members.includes(senderId)) {
+        return res.status(403).json({ message: "Access denied: Not a member of this room." });
+      }
+
+      newMessage = await Message.create({
+        senderId,
+        text: translatedText,
+        image: imageUrl || "",
+        originalText,
+        translatedText,
+        roomId,
       });
+
+      room.messages.push(newMessage._id);
+      await room.save();
+      req.io.to(roomId.toString()).emit("newMessage", newMessage);
+    } else {
+      // Save direct chat message
+      let conversation = await Conversation.findOne({
+        participants: { $all: [senderId, receiverId] },
+      });
+
+      if (!conversation) {
+        conversation = await Conversation.create({
+          participants: [senderId, receiverId],
+          messages: [],
+        });
+      }
+
+      newMessage = await Message.create({
+        senderId,
+        receiverId,
+        text: translatedText,
+        image: imageUrl || "",
+        originalText,
+        translatedText,
+      });
+
+      conversation.messages.push(newMessage._id);
+      await conversation.save();
+      req.io.to(receiverId.toString()).emit("newMessage", newMessage);
     }
-
-    // Always set originalText and translatedText, even for image-only messages
-    const newMessage = await Message.create({
-      senderId,
-      receiverId,
-      text: translatedText || "",
-      image: imageUrl || "",
-      originalText: originalText || "",
-      translatedText: translatedText || "",
-    });
-
-    conversation.messages.push(newMessage._id);
-    await conversation.save();
-
-    req.io.to(receiverId.toString()).emit("newMessage", newMessage);
 
     res.status(201).json(newMessage);
   } catch (error) {
