@@ -50,6 +50,29 @@ export default function AdminRoomDetailPage() {
     }
     fetchOnlineUsers();
   }, []);
+  async function handleInvite() {
+    if (!room || !inviteUserId) return;
+    setError("");
+    try {
+      const token = window.localStorage.getItem("chat-user-token");
+      const res = await fetch(`https://translatechatapp.onrender.com/api/rooms/${roomId}/invite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ userId: inviteUserId }),
+        credentials: "include"
+      });
+      if (!res.ok) throw new Error("Failed to invite user");
+      const updatedRoom = await res.json();
+      setRoom(updatedRoom);
+      setMembers(updatedRoom.members || []);
+      setInviteUserId("");
+    } catch (err) {
+      setError("Invite failed: " + err.message);
+    }
+  }
 
   useEffect(() => {
     if (!room) return;

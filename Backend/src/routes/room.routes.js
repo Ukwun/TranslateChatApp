@@ -49,4 +49,25 @@ router.get("/:roomId", async (req, res) => {
   }
 });
 
+// ✅ Invite user to room
+router.post('/:roomId/invite', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
+    const room = await ChatRoom.findById(req.params.roomId);
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+    // Only add if not already a member
+    if (!room.members.map(m => m.toString()).includes(userId)) {
+      room.members.push(userId);
+      await room.save();
+    }
+    // Populate members for frontend
+    await room.populate('members', 'fullName username');
+    res.json(room);
+  } catch (err) {
+    console.error('Error inviting user:', err);
+    res.status(500).json({ error: 'Failed to invite user' });
+  }
+});
+
 export default router;
