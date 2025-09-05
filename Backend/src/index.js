@@ -1,19 +1,21 @@
-// server/index.js (or server.js)
+// src/index.js
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
-
 import dotenv from "dotenv";
-dotenv.config();
 
 import connectDB from "./lib/db.js";
+
+// ✅ Ensure these route files each use `export default router`
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 import adminRoutes from "./routes/admin.route.js";
-import roomRoutes from "./routes/room.routes.js";
+import roomRoutes from "./routes/room.routes.js"; // 🔥 renamed to match singular "room.route.js"
+
+dotenv.config();
 
 const app = express();
 const server = createServer(app);
@@ -21,17 +23,17 @@ const PORT = process.env.PORT || 5000;
 
 /* ----------------------------- MIDDLEWARE ----------------------------- */
 
-// Log requests (optional but super helpful)
+// Logs HTTP requests
 app.use(morgan("dev"));
 
 // Body parsers
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Cookies
+// Cookie parsing
 app.use(cookieParser());
 
-// CORS (allow credentials + your local front-end hosts)
+// Allowed CORS origins
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
@@ -43,22 +45,27 @@ const allowedOrigins = [
   "https://ukwunapp.netlify.app",
 ];
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  } else {
-    res.header("Access-Control-Allow-Origin", allowedOrigins[0]);
-  }
-  res.header("Vary", "Origin");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// ✅ Use cors() properly
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, origin);
+      } else {
+        callback(null, allowedOrigins[0]); // default fallback
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Origin",
+      "X-Requested-With",
+      "Content-Type",
+      "Accept",
+      "Authorization",
+    ],
+  })
+);
 
 /* -------------------------- SOCKET.IO SETUP ------------------------- */
 
@@ -67,11 +74,17 @@ const io = new Server(server, {
     origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+    allowedHeaders: [
+      "Origin",
+      "X-Requested-With",
+      "Content-Type",
+      "Accept",
+      "Authorization",
+    ],
   },
 });
 
-// Attach io to req so it can be accessed in controllers
+// Attach io instance to req object
 app.use((req, res, next) => {
   req.io = io;
   next();
@@ -82,11 +95,10 @@ io.on("connection", (socket) => {
   console.log("🔌 User connected:", socket.id);
 
   socket.on("join", (userId) => {
-    socket.join(userId); // join room with userId
+    socket.join(userId);
     console.log(`✅ User ${userId} joined their room`);
   });
 
-  // Typing indicator
   socket.on("typing", (receiverId) => {
     socket.to(receiverId).emit("typing", socket.userId || socket.id);
   });
@@ -119,7 +131,6 @@ app.use((req, res, next) => {
 
 /* ------------------------- CENTRAL ERROR HANDLER ---------------------- */
 app.use((err, _req, res, _next) => {
-  // Ensure we always see the real error in the server logs
   console.error("❌ Server error:", err);
   const status = err.status || 500;
   const message =
@@ -130,7 +141,7 @@ app.use((err, _req, res, _next) => {
 /* ------------------------------- STARTUP ------------------------------ */
 (async () => {
   try {
-    await connectDB(); // connect to Mongo BEFORE starting server
+    await connectDB();
     server.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
