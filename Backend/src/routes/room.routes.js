@@ -1,75 +1,84 @@
+// src/routes/room.routes.js
 import express from "express";
-import ChatRoom from "../models/chatroom.model.js";
+import Room from "../models/room.model.js";
+import { protectRoute } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-
-
-// ✅ Delete room by ID
-router.delete("/:roomId", async (req, res) => {
+/**
+ * @route POST /api/rooms
+ * @desc Create a new room
+ */
+router.post("/", protectRoute, async (req, res) => {
   try {
-    const room = await ChatRoom.findByIdAndDelete(req.params.roomId);
-    if (!room) return res.status(404).json({ error: "Room not found" });
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Error deleting room:", err);
-    res.status(500).json({ error: "Failed to delete room" });
-  }
-});
+    const { name } = req.body;
 
-// ✅ Create room
-router.post("/", async (req, res) => {
-  try {
-    const { name, description } = req.body;
-    const room = await ChatRoom.create({ name, description });
-    res.status(201).json(room);
+    if (!name) {
+      return res.status(400).json({ message: "Room name is required" });
+    }
+
+    const newRoom = new Room({
+      name,
+      createdBy: req.user._id, // ✅ fix here
+    });
+
+    await newRoom.save();
+
+    res.status(201).json(newRoom);
   } catch (err) {
     console.error("Error creating room:", err);
-    res.status(500).json({ error: "Failed to create room" });
+    res.status(500).json({ message: err.message || "Failed to create room" });
   }
 });
 
-// ✅ Get all rooms
-router.get("/", async (req, res) => {
+/**
+ * @route GET /api/rooms
+ * @desc Get all rooms
+ */
+router.get("/", protectRoute, async (_req, res) => {
   try {
-    const rooms = await ChatRoom.find();
+    const rooms = await Room.find().populate("createdBy", "username email");
     res.json(rooms);
   } catch (err) {
     console.error("Error fetching rooms:", err);
-    res.status(500).json({ error: "Failed to fetch rooms" });
+    res.status(500).json({ message: "Failed to fetch rooms" });
   }
 });
 
-// ✅ Get single room by ID
-router.get("/:roomId", async (req, res) => {
+/**
+ * @route GET /api/rooms/:id
+ * @desc Get room by ID
+ */
+router.get("/:id", protectRoute, async (req, res) => {
   try {
-    const room = await ChatRoom.findById(req.params.roomId);
-    if (!room) return res.status(404).json({ error: "Room not found" });
+    const room = await Room.findById(req.params.id).populate("createdBy", "username email");
+    if (!room) return res.status(404).json({ message: "Room not found" });
     res.json(room);
   } catch (err) {
     console.error("Error fetching room:", err);
-    res.status(500).json({ error: "Failed to fetch room" });
+    res.status(500).json({ message: "Failed to fetch room" });
   }
 });
 
-// ✅ Invite user to room
-router.post('/:roomId/invite', async (req, res) => {
+/**
+ * @route DELETE /api/rooms/:id
+ * @desc Delete a room
+ */
+router.delete("/:id", protectRoute, async (req, res) => {
   try {
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: 'Missing userId' });
-    const room = await ChatRoom.findById(req.params.roomId);
-    if (!room) return res.status(404).json({ error: 'Room not found' });
-    // Only add if not already a member
-    if (!room.members.map(m => m.toString()).includes(userId)) {
-      room.members.push(userId);
-      await room.save();
+    const room = await Room.findById(req.params.id);
+    if (!room) return res.status(404).json({ message: "Room not found" });
+
+    // Optional: only creator can delete
+    if (room.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized to delete this room" });
     }
-    // Populate members for frontend
-    await room.populate('members', 'fullName username');
-    res.json(room);
+
+    await room.deleteOne();
+    res.json({ message: "Room deleted successfully" });
   } catch (err) {
-    console.error('Error inviting user:', err);
-    res.status(500).json({ error: 'Failed to invite user' });
+    console.error("Error deleting room:", err);
+    res.status(500).json({ message: "Failed to delete room" });
   }
 });
 
