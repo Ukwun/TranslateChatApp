@@ -61,83 +61,82 @@ export const getConversationMessages = async (req, res) => {
   }
 };
 
-// ✅ Send a message
+// ✅ Get messages for a room
+export const getRoomMessages = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const messages = await Message.find({ roomId }).populate(
+      "senderId",
+      "fullName profilePic"
+    );
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error("❌ Error in getRoomMessages:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ✅ Send a message (private or room)
 export const sendMessage = async (req, res) => {
   try {
     const senderId = req.user._id;
-    const receiverId = req.params.id;
-    const { text, image, roomId } = req.body;
+    const { text, roomId, receiverId } = req.body;
+    let imageUrl = "";
 
-    if (roomId) {
-      const room = await ChatRoom.findById(roomId);
-      if (!room || !room.members.includes(senderId) || !room.members.includes(receiverId)) {
-        return res.status(403).json({ message: "Access denied: Not a member of this room." });
-      }
-    }
-
-    let imageUrl;
-    if (image) {
-      const uploadResponse = await cloudinary.uploader.upload(image);
+    if (req.file) {
+      const uploadResponse = await cloudinary.uploader.upload(req.file.path);
       imageUrl = uploadResponse.secure_url;
     }
 
-    // ✅ Language handling
-    const receiver = await User.findById(receiverId);
-    const langMap = {
-      en: "English",
-      ko: "Korean",
-      fr: "French",
-      es: "Spanish",
-      de: "German",
-      zh: "Chinese",
-      ja: "Japanese",
-      ru: "Russian",
-      it: "Italian",
-    };
-    const targetLangCode = receiver?.language || "en";
-    const targetLangName = langMap[targetLangCode] || "English";
-
-    let translatedText = text;
-    let originalText = text;
-    if (text && targetLangCode) {
-      try {
-        const sender = await User.findById(senderId);
-        const senderLang = sender?.language || "en";
-        if (targetLangCode !== senderLang) {
-          translatedText = await translateText(text, targetLangName, process.env.OPENAI_API_KEY);
-        }
-      } catch (err) {
-        console.error("Translation error:", err.message);
-      }
+    if (!text && !imageUrl) {
+      return res
+        .status(400)
+        .json({ message: "Message content cannot be empty" });
     }
 
-    // ✅ Find or create conversation
-    let conversation = await Conversation.findOne({
-      participants: { $all: [senderId, receiverId] },
-    });
+    let newMessage;
 
-    if (!conversation) {
-      conversation = await Conversation.create({
-        participants: [senderId, receiverId],
-        messages: [],
+    if (roomId) {
+      const room = await ChatRoom.findById(roomId);
+      if (!room) return res.status(404).json({ message: "Room not found" });
+
+      newMessage = new Message({
+        senderId,
+        roomId,
+        text: text || "",
+        image: imageUrl || "",
       });
+
+      room.messages.push(newMessage._id);
+      await Promise.all([newMessage.save(), room.save()]);
+
+      await newMessage.populate("senderId", "fullName profilePic");
+      req.io.to(roomId).emit("receiveMessage", newMessage);
+    } else if (receiverId) {
+      let conversation = await Conversation.findOne({
+        participants: { $all: [senderId, receiverId] },
+      });
+      if (!conversation) {
+        conversation = await Conversation.create({
+          participants: [senderId, receiverId],
+        });
+      }
+      newMessage = new Message({
+        senderId,
+        receiverId,
+        text: text || "",
+        image: imageUrl || "",
+      });
+      conversation.messages.push(newMessage._id);
+      await Promise.all([newMessage.save(), conversation.save()]);
+      await newMessage.populate("senderId", "fullName profilePic");
+      req.io.to(receiverId.toString()).emit("receiveMessage", newMessage);
+      req.io.to(senderId.toString()).emit("receiveMessage", newMessage);
+    } else {
+      return res
+        .status(400)
+        .json({ message: "Invalid request: requires roomId or receiverId" });
     }
-
-    // ✅ Create new message
-    const newMessage = await Message.create({
-      senderId,
-      receiverId,
-      text: translatedText || "",
-      image: imageUrl || "",
-      originalText: originalText || "",
-      translatedText: translatedText || "",
-    });
-
-    conversation.messages.push(newMessage._id);
-    await conversation.save();
-
-    // ✅ Emit real-time update
-    req.io.to(receiverId.toString()).emit("newMessage", newMessage);
 
     res.status(201).json(newMessage);
   } catch (error) {

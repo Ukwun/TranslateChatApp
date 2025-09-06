@@ -56,10 +56,13 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
 
     const handleReceiveMessage = (message) => {
       // Only update if the message is for the current room OR a private chat
-      const isForCurrentRoom = message.roomId && message.roomId === room?._id;
-      const isForCurrentPrivateChat = !message.roomId && currentChatUser && ((message.senderId === user._id && message.receiverId === currentChatUser._id) || (message.senderId === currentChatUser._id && message.receiverId === user._id));
+      const isForCurrentRoom = message.roomId && message.roomId === room?._id;      const isForCurrentPrivateChat = !message.roomId && currentChatUser && ((message.senderId === user._id && message.receiverId === currentChatUser._id) || (message.senderId === currentChatUser._id && message.receiverId === user._id));
       if (isForCurrentRoom || isForCurrentPrivateChat) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+          // prevent duplicates
+          if (prev.some((m) => m._id === message._id)) return prev;
+          return [...prev, message];
+        });
       }
     };
 
@@ -93,33 +96,27 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
     setIsSending(true);
 
     try {
-      let payload;
+      const formData = new FormData();
+      if (text.trim()) formData.append("text", text);
       if (image && imageInputRef.current?.files[0]) {
-        const form = new FormData();
-        form.append("image", imageInputRef.current.files[0]);
-        if (room?._id) form.append("roomId", room._id);
-        if (currentChatUser?._id) form.append("receiverId", currentChatUser._id);
-
-        const res = await api.post("/messages/send-image", form, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        payload = res.data;
+        formData.append("image", imageInputRef.current.files[0]);
       }
 
-      if (text.trim()) {
-        const body = {
-          text,
-          ...(room?._id ? { roomId: room._id } : {}),
-          ...(currentChatUser?._id ? { receiverId: currentChatUser._id } : {}),
-        };
-        const res = await api.post("/messages/send-text", body);
-        payload = res.data;
+      if (room?._id) {
+        formData.append("roomId", room._id);
+      } else if (currentChatUser?._id) {
+        formData.append("receiverId", currentChatUser._id);
+      } else {
+        throw new Error("No recipient for message");
       }
 
-      if (payload) {
-        setMessages((prev) => [...prev, payload]);
-        socket.emit("sendMessage", payload);
-      }
+      const res = await api.post("/messages/send", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // Add message to state immediately for the sender.
+      // Other clients will receive it via socket.
+      setMessages((prev) => [...prev, res.data]);
 
       setText("");
       setImage(null);
