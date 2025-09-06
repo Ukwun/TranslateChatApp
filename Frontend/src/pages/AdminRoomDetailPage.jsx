@@ -135,7 +135,7 @@ export default function AdminRoomDetailPage() {
       {/* Chat Box */}
       <div className="mb-6">
         <h2 className="font-semibold text-lg mb-2">Chat Box</h2>
-        <div className="border rounded-lg bg-white min-h-[120px] text-gray-700">
+        <div className="border rounded-lg bg-white min-h-[400px] text-gray-700 flex flex-col">
           <ChatBox
             user={authUser}
             currentChatUser={currentChatUser}

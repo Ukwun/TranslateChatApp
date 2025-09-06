@@ -53,11 +53,13 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
     const getMessages = async () => {
       setMessages([]);
       try {
-        if (room?._id) {
-          const res = await api.get(`/messages/conversation/${room._id}`);
+        if (currentChatUser?._id) {
+          // A 1-on-1 chat takes precedence over a room chat
+          const res = await api.get(`/messages/${currentChatUser._id}`);
           setMessages(res.data || []);
-        } else if (user?._id && currentChatUser?._id) {
-          const res = await api.get(`/messages/conversation/${user._id}/${currentChatUser._id}`);
+        } else if (room?._id) {
+          // Fallback to room-wide chat. NOTE: This endpoint `/messages/room/${room._id}` might need to be created on the backend.
+          const res = await api.get(`/messages/room/${room._id}`);
           setMessages(res.data || []);
         }
       } catch (error) {
