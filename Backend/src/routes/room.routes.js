@@ -37,7 +37,7 @@ router.post("/", protectRoute, async (req, res) => {
  */
 router.get("/", protectRoute, async (_req, res) => {
   try {
-    const rooms = await Room.find().populate("createdBy", "username email");
+    const rooms = await Room.find().populate("createdBy", "fullName email");
     res.json(rooms);
   } catch (err) {
     console.error("Error fetching rooms:", err);
@@ -51,7 +51,7 @@ router.get("/", protectRoute, async (_req, res) => {
  */
 router.get("/:id", protectRoute, async (req, res) => {
   try {
-    const room = await Room.findById(req.params.id).populate("createdBy", "username email");
+    const room = await Room.findById(req.params.id).populate("createdBy", "fullName email");
     if (!room) return res.status(404).json({ message: "Room not found" });
     res.json(room);
   } catch (err) {
