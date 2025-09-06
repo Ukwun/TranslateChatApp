@@ -1,6 +1,6 @@
 // src/routes/room.routes.js
 import express from "express";
-import Room from "../models/chatroom.model.js";
+import ChatRoom from "../models/chatroom.model.js";
 import { protectRoute } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -17,7 +17,7 @@ router.post("/", protectRoute, async (req, res) => {
       return res.status(400).json({ message: "Room name is required" });
     }
 
-    const newRoom = new Room({
+    const newRoom = new ChatRoom({
       name,
       description,
       createdBy: req.user._id, // ✅ fix here
@@ -38,7 +38,7 @@ router.post("/", protectRoute, async (req, res) => {
  */
 router.get("/", protectRoute, async (_req, res) => {
   try {
-    const rooms = await Room.find().populate("createdBy", "fullName email");
+    const rooms = await ChatRoom.find().populate("createdBy", "fullName email");
     res.json(rooms);
   } catch (err) {
     console.error("Error fetching rooms:", err);
@@ -52,7 +52,7 @@ router.get("/", protectRoute, async (_req, res) => {
  */
 router.get("/:id", protectRoute, async (req, res) => {
   try {
-    const room = await Room.findById(req.params.id).populate("createdBy", "fullName email");
+    const room = await ChatRoom.findById(req.params.id).populate("createdBy", "fullName email");
     if (!room) return res.status(404).json({ message: "Room not found" });
     res.json(room);
   } catch (err) {
@@ -67,7 +67,7 @@ router.get("/:id", protectRoute, async (req, res) => {
  */
 router.delete("/:id", protectRoute, async (req, res) => {
   try {
-    const room = await Room.findById(req.params.id);
+    const room = await ChatRoom.findById(req.params.id);
     if (!room) return res.status(404).json({ message: "Room not found" });
 
     // Optional: only creator can delete
@@ -91,7 +91,7 @@ router.delete("/:id", protectRoute, async (req, res) => {
 router.post("/:id/invite", protectRoute, async (req, res) => {
   try {
     const { userId } = req.body;
-    const room = await Room.findById(req.params.id);
+    const room = await ChatRoom.findById(req.params.id);
 
     if (!room) {
       return res.status(404).json({ message: "Room not found" });
@@ -107,7 +107,7 @@ router.post("/:id/invite", protectRoute, async (req, res) => {
     room.members.push(userId);
     await room.save();
 
-    const updatedRoom = await Room.findById(req.params.id).populate("members", "fullName email");
+    const updatedRoom = await ChatRoom.findById(req.params.id).populate("members", "fullName email");
     res.json(updatedRoom);
   } catch (err) {
     console.error("Error inviting user to room:", err);
