@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import ChatBox from "../components/ChatBox";
+import api from "../api/api.js";
+import toast from "react-hot-toast";
 
 export default function AdminRoomDetailPage() {
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [inviteUserId, setInviteUserId] = useState("");
   const [currentChatUser, setCurrentChatUser] = useState(null);
@@ -18,14 +19,10 @@ export default function AdminRoomDetailPage() {
   useEffect(() => {
     async function fetchRoom() {
       try {
-        const res = await fetch(
-          `https://translatechatapp.onrender.com/api/rooms/${roomId}`
-        );
-        if (!res.ok) throw new Error("Room not found");
-        const data = await res.json();
-        setRoom(data);
+        const res = await api.get(`/rooms/${roomId}`);
+        setRoom(res.data);
       } catch (err) {
-        setError("Failed to fetch room: " + err.message);
+        toast.error(err.response?.data?.message || "Failed to fetch room details");
       } finally {
         setLoading(false);
       }
@@ -37,21 +34,11 @@ export default function AdminRoomDetailPage() {
   useEffect(() => {
     async function fetchOnlineUsers() {
       try {
-        const token = window.localStorage.getItem("chat-user-token");
-        const res = await fetch(
-          "https://translatechatapp.onrender.com/api/messages/users",
-          {
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            credentials: "include",
-          }
-        );
-        const data = await res.json();
-        setOnlineUsers(data);
-      } catch {
+        const res = await api.get("/messages/users");
+        setOnlineUsers(res.data);
+      } catch (err) {
         setOnlineUsers([]);
+        console.error("Failed to fetch online users:", err);
       }
     }
     fetchOnlineUsers();
@@ -60,27 +47,13 @@ export default function AdminRoomDetailPage() {
   // ✅ Invite user to room
   async function handleInvite() {
     if (!room || !inviteUserId) return;
-    setError("");
     try {
-      const token = window.localStorage.getItem("chat-user-token");
-      const res = await fetch(
-        `https://translatechatapp.onrender.com/api/rooms/${roomId}/invite`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ userId: inviteUserId }),
-          credentials: "include",
-        }
-      );
-      if (!res.ok) throw new Error("Failed to invite user");
-      const updatedRoom = await res.json();
-      setRoom(updatedRoom);
+      const res = await api.post(`/rooms/${roomId}/invite`, { userId: inviteUserId });
+      setRoom(res.data);
       setInviteUserId("");
+      toast.success("User invited successfully!");
     } catch (err) {
-      setError("Invite failed: " + err.message);
+      toast.error(err.response?.data?.message || "Failed to invite user");
     }
   }
 
@@ -91,7 +64,6 @@ export default function AdminRoomDetailPage() {
 
   // ✅ Loading / error / no room states
   if (loading) return <p>Loading room...</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
   if (!room) return <p>Room not found</p>;
 
   return (

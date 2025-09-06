@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { Camera, Settings } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import toast from "react-hot-toast";
 import EditProfileModal from "../components/EditProfileModal";
 import api from "../api/api.js";
 import { Link, useNavigate } from "react-router-dom";
@@ -61,18 +62,14 @@ const ProfilePage = () => {
 		e.preventDefault();
 		setCreatingRoom(true);
 		try {
-			const res = await fetch("https://translatechatapp.onrender.com/api/rooms", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name: roomName, description: roomDesc }),
-			});
-			if (!res.ok) throw new Error("Failed to create room");
+			await api.post("/rooms", { name: roomName, description: roomDesc });
 			setRoomName("");
 			setRoomDesc("");
 			setIsCreateRoomOpen(false);
+			toast.success("Room created successfully!");
 			navigate("/admin-rooms");
 		} catch (err) {
-			alert("Error creating room. Please try again.");
+			toast.error(err.response?.data?.message || "Failed to create room");
 		} finally {
 			setCreatingRoom(false);
 		}

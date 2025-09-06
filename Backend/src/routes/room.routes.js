@@ -11,7 +11,7 @@ const router = express.Router();
  */
 router.post("/", protectRoute, async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, description } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Room name is required" });
@@ -19,6 +19,7 @@ router.post("/", protectRoute, async (req, res) => {
 
     const newRoom = new Room({
       name,
+      description,
       createdBy: req.user._id, // ✅ fix here
     });
 
@@ -79,6 +80,38 @@ router.delete("/:id", protectRoute, async (req, res) => {
   } catch (err) {
     console.error("Error deleting room:", err);
     res.status(500).json({ message: "Failed to delete room" });
+  }
+});
+
+/**
+ * @route POST /api/rooms/:id/invite
+ * @desc Invite a user to a room
+ * @note Assumes your chatroom.model.js has a `members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]` field.
+ */
+router.post("/:id/invite", protectRoute, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const room = await Room.findById(req.params.id);
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    if (room.members.includes(userId)) {
+      return res.status(400).json({ message: "User is already a member of this room" });
+    }
+
+    room.members.push(userId);
+    await room.save();
+
+    const updatedRoom = await Room.findById(req.params.id).populate("members", "fullName email");
+    res.json(updatedRoom);
+  } catch (err) {
+    console.error("Error inviting user to room:", err);
+    res.status(500).json({ message: "Failed to invite user" });
   }
 });
 
