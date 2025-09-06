@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ChatBox from "../components/ChatBox";
 import api from "../api/api.js";
 import toast from "react-hot-toast";
+import { useAuthStore } from "../store/useAuthStore.js";
 
 export default function AdminRoomDetailPage() {
   const [room, setRoom] = useState(null);
@@ -11,6 +12,7 @@ export default function AdminRoomDetailPage() {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [inviteUserId, setInviteUserId] = useState("");
   const [currentChatUser, setCurrentChatUser] = useState(null);
+  const { authUser } = useAuthStore();
 
   // Get roomId from URL
   const roomId = window.location.pathname.split("/").pop();
@@ -135,7 +137,7 @@ export default function AdminRoomDetailPage() {
         <h2 className="font-semibold text-lg mb-2">Chat Box</h2>
         <div className="border rounded-lg bg-white min-h-[120px] text-gray-700">
           <ChatBox
-            user={{ _id: "admin", fullName: "Admin" }}
+            user={authUser}
             currentChatUser={currentChatUser}
             room={room}
             members={room.members}
