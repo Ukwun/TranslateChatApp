@@ -95,45 +95,43 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
     if (!socket) return toast.error("Not connected to chat server.");
     setIsSending(true);
 
-    try {
-      const formData = new FormData();
-      if (text.trim()) formData.append("text", text);
-      if (image && imageInputRef.current?.files[0]) {
-        formData.append("image", imageInputRef.current.files[0]);
-      }
+        try {
+            const formData = new FormData();
+            if (text.trim()) formData.append("text", text);
+            if (image && imageInputRef.current?.files[0]) {
+                formData.append("image", imageInputRef.current.files[0]);
+            }
 
-      if (room?._id) {
-        formData.append("roomId", room._id);
-      } else if (currentChatUser?._id) {
-        formData.append("receiverId", currentChatUser._id);
-      } else {
-        throw new Error("No recipient for message");
-      }
+            if (room?._id) {
+                formData.append("roomId", room._id);
+            } else if (currentChatUser?._id) {
+                formData.append("receiverId", currentChatUser._id);
+            } else {
+                throw new Error("No recipient for message");
+            }
 
-      const res = await api.post("/messages/send", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+            const res = await api.post("/messages/send", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
 
-      // Add message to state immediately for the sender.
-      // Other clients will receive it via socket.
-      setMessages((prev) => [...prev, res.data]);
-
-      setText("");
-      setImage(null);
-      if (imageInputRef.current) imageInputRef.current.value = "";
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to send message");
-      console.error("❌ Send message error:", error);
-    } finally {
-      setIsSending(false);
-    }
+            // The message is sent via socket from the backend, so we don't need to add it here manually.
+            // The `handleReceiveMessage` socket listener will add it for everyone, including the sender.
+            setText("");
+            setImage(null);
+            if (imageInputRef.current) imageInputRef.current.value = "";
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to send message");
+            console.error("❌ Send message error:", error);
+        } finally {
+            setIsSending(false);
+        }
   };
 
   const handleTyping = (e) => {
     setText(e.target.value);
     if (!socket) return;
     // In a room context, emit typing to the room
-    if (room?._id) socket.emit("typing", { roomId: room._id });
+    if (room?._id) socket.emit("typing", { roomId: room._id, userId: user._id });
   };
 
   const handleImageChange = (e) => {

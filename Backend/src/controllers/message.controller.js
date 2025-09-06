@@ -111,6 +111,7 @@ export const sendMessage = async (req, res) => {
       await Promise.all([newMessage.save(), room.save()]);
 
       await newMessage.populate("senderId", "fullName profilePic");
+      // Emit to all clients in the room, including the sender
       req.io.to(roomId).emit("receiveMessage", newMessage);
     } else if (receiverId) {
       let conversation = await Conversation.findOne({
@@ -130,6 +131,7 @@ export const sendMessage = async (req, res) => {
       conversation.messages.push(newMessage._id);
       await Promise.all([newMessage.save(), conversation.save()]);
       await newMessage.populate("senderId", "fullName profilePic");
+      // Emit to both the receiver and the sender for private messages
       req.io.to(receiverId.toString()).emit("receiveMessage", newMessage);
       req.io.to(senderId.toString()).emit("receiveMessage", newMessage);
     } else {

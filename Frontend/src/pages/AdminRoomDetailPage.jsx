@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import ChatBox from "../components/ChatBox";
 import api from "../api/api.js";
 import toast from "react-hot-toast";
@@ -14,8 +15,8 @@ export default function AdminRoomDetailPage() {
   const [currentChatUser, setCurrentChatUser] = useState(null);
   const { authUser } = useAuthStore();
 
-  // Get roomId from URL
-  const roomId = window.location.pathname.split("/").pop();
+  // ✅ Get roomId from URL using react-router-dom's useParams hook
+  const { roomId } = useParams();
 
   // ✅ Fetch room details
   useEffect(() => {
