@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
-import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import { useThemeStore } from "../store/useThemeStore";
 import { useTranslation } from "react-i18next";
 import api from "../api/api";
-
-let socket;
+import { useSocketStore } from "../store/useSocket";
 
 export default function ChatBox({ user, currentChatUser, room, members }) {
   const { t } = useTranslation();
@@ -17,36 +15,9 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
   const [isTyping, setIsTyping] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
+  const { socket } = useSocketStore();
   const messagesEndRef = useRef(null);
   const imageInputRef = useRef(null);
-
-  // ✅ Initialize socket once
-  useEffect(() => {
-    const token = window.localStorage.getItem("chat-user-token");
-    if (!socket) {
-      socket = io(
-        import.meta.env.VITE_SOCKET_URL ||
-          import.meta.env.VITE_BACKEND_URL ||
-          "http://localhost:5000",
-        {
-          withCredentials: true,
-          transports: ["websocket", "polling"],
-          auth: { token },
-          path: "/socket.io",
-        }
-      );
-    }
-
-    if (room?._id) {
-      socket.emit("joinRoom", room._id);
-    } else if (user?._id) {
-      socket.emit("joinPrivate", user._id);
-    }
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [room, user]);
 
   // ✅ Fetch messages
   useEffect(() => {
@@ -76,24 +47,36 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
 
   // ✅ Socket listeners
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !user) return;
 
-    socket.on("receiveMessage", (message) => {
-      setMessages((prev) => [...prev, message]);
-    });
+    // Join the room for real-time messages
+    if (room?._id) {
+      socket.emit("joinRoom", room._id);
+    }
 
-    socket.on("typing", (typingUserId) => {
-      if (typingUserId === currentChatUser?._id) {
-        setIsTyping(true);
-        setTimeout(() => setIsTyping(false), 1500);
+    const handleReceiveMessage = (message) => {
+      // Only update if the message is for the current room OR a private chat
+      const isForCurrentRoom = message.roomId && message.roomId === room?._id;
+      const isForCurrentPrivateChat = !message.roomId && currentChatUser && ((message.senderId === user._id && message.receiverId === currentChatUser._id) || (message.senderId === currentChatUser._id && message.receiverId === user._id));
+      if (isForCurrentRoom || isForCurrentPrivateChat) {
+        setMessages((prev) => [...prev, message]);
       }
-    });
-
-    return () => {
-      socket.off("receiveMessage");
-      socket.off("typing");
     };
-  }, [currentChatUser]);
+
+    const handleTyping = (typingData) => {
+      if (typingData.roomId === room?._id && typingData.userId !== user._id) {
+        setIsTyping(true);
+        setTimeout(() => setIsTyping(false), 2000);
+      }
+    };
+
+    socket.on("receiveMessage", handleReceiveMessage);
+    socket.on("typing", handleTyping);
+    return () => {
+      socket.off("receiveMessage", handleReceiveMessage);
+      socket.off("typing", handleTyping);
+    };
+  }, [socket, room?._id, currentChatUser, user]);
 
   // ✅ Auto scroll
   useEffect(() => {
@@ -106,6 +89,7 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
       toast.error("Type a message or select an image.");
       return;
     }
+    if (!socket) return toast.error("Not connected to chat server.");
     setIsSending(true);
 
     try {
@@ -150,11 +134,9 @@ export default function ChatBox({ user, currentChatUser, room, members }) {
 
   const handleTyping = (e) => {
     setText(e.target.value);
-    if (room?._id) {
-      socket.emit("typing", room._id);
-    } else if (currentChatUser?._id) {
-      socket.emit("typing", currentChatUser._id);
-    }
+    if (!socket) return;
+    // In a room context, emit typing to the room
+    if (room?._id) socket.emit("typing", { roomId: room._id });
   };
 
   const handleImageChange = (e) => {

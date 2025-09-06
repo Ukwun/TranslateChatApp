@@ -5,10 +5,11 @@ import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
+import cors from "cors";
 
 import connectDB from "./lib/db.js";
 
-// Routes (each must export `default router`)
+// Routes
 import authRoutes from "./routes/auth.route.js";
 import messageRoutes from "./routes/message.route.js";
 import adminRoutes from "./routes/admin.route.js";
@@ -20,18 +21,15 @@ const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 5000;
 
-// If you use secure cookies behind a proxy (Render), trust proxy
 app.set("trust proxy", 1);
 
 /* ----------------------------- MIDDLEWARE ----------------------------- */
-
 app.use(morgan("dev"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 
-// Whitelist of allowed origins
-const allowedOrigins = new Set([
+const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
@@ -39,51 +37,43 @@ const allowedOrigins = new Set([
   "https://ukwun.netlify.app",
   "https://www.ukwun.netlify.app",
   "https://ukwunapp.netlify.app",
-]);
+];
 
-/**
- * Lightweight CORS layer that ALWAYS sets headers (even on errors),
- * and short-circuits OPTIONS preflight with 204.
- */
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const isAllowed = !origin || allowedOrigins.has(origin);
+// ✅ Use official cors package
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        cb(null, true);
+      } else {
+        cb(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
-  if (isAllowed) {
-    res.setHeader("Access-Control-Allow-Origin", origin || "http://localhost:5173");
-    res.setHeader("Vary", "Origin");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-    );
-  }
-
-  if (req.method === "OPTIONS") {
-    // Important: end preflight here so no other middleware runs
-    return res.sendStatus(204);
-  }
-
-  return next();
-});
+// ✅ Ensure OPTIONS requests are always handled
+app.options("*", cors());
 
 /* -------------------------- SOCKET.IO SETUP --------------------------- */
-
 const io = new Server(server, {
   cors: {
     origin: (origin, cb) => {
-      // Allow same whitelist for websockets
-      if (!origin || allowedOrigins.has(origin)) return cb(null, true);
-      // Still allow from localhost/no origin (e.g., server-to-server)
-      return cb(null, true);
+      if (!origin || allowedOrigins.includes(origin)) {
+        cb(null, true);
+      } else {
+        cb(null, false);
+      }
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   },
 });
 
-// Attach io to req for controllers
+// Attach io to req
 app.use((req, _res, next) => {
   req.io = io;
   next();
@@ -99,9 +89,24 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("typing", (receiverId) => {
-    if (receiverId) {
-      socket.to(receiverId.toString()).emit("typing", socket.id);
+  socket.on("joinRoom", (roomId) => {
+    socket.join(roomId);
+    console.log(`User ${socket.id} joined room ${roomId}`);
+  });
+
+  socket.on("sendMessage", (message) => {
+    if (message.roomId) {
+      // Broadcast to all clients in the room except the sender
+      socket.to(message.roomId).emit("receiveMessage", message);
+    } else if (message.receiverId) {
+      // Send to a specific user for private chat
+      socket.to(message.receiverId).emit("receiveMessage", message);
+    }
+  });
+
+  socket.on("typing", (typingData) => {
+    if (typingData.roomId) {
+      socket.to(typingData.roomId).emit("typing", typingData);
     }
   });
 
@@ -111,7 +116,6 @@ io.on("connection", (socket) => {
 });
 
 /* -------------------------------- ROUTES ------------------------------ */
-
 app.get("/", (_req, res) => {
   res.send("✅ Server is running!");
 });
@@ -129,13 +133,15 @@ app.use((req, res, next) => {
   next();
 });
 
-/* ------------------------- CENTRAL ERROR HANDLER ---------------------- */
-// Ensure CORS headers are still present on error responses
+/* ------------------------- ERROR HANDLER ------------------------------- */
 app.use((err, req, res, _next) => {
-  const origin = req.headers.origin;
+  console.error("❌ Server error:", err);
+
+  // Ensure CORS headers are present on errors
   if (!res.getHeader("Access-Control-Allow-Origin")) {
-    if (!origin || allowedOrigins.has(origin)) {
-      res.setHeader("Access-Control-Allow-Origin", origin || "http://localhost:5173");
+    const origin = req.headers.origin;
+    if (!origin || allowedOrigins.includes(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin || "*");
       res.setHeader("Vary", "Origin");
       res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
@@ -146,10 +152,8 @@ app.use((err, req, res, _next) => {
     }
   }
 
-  console.error("❌ Server error:", err);
   const status = err.status || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
+  res.status(status).json({ message: err.message || "Internal Server Error" });
 });
 
 /* ------------------------------- STARTUP ------------------------------ */

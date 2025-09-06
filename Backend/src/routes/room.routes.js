@@ -107,7 +107,14 @@ router.post("/:id/invite", protectRoute, async (req, res) => {
     room.members.push(userId);
     await room.save();
 
-    const updatedRoom = await ChatRoom.findById(req.params.id).populate("members", "fullName email");
+    const updatedRoom = await ChatRoom.findById(req.params.id).populate("members", "fullName email").populate("createdBy", "fullName");
+
+    // Emit a notification to the invited user
+    req.io.to(userId).emit("room-invite", {
+        room: { _id: updatedRoom._id, name: updatedRoom.name },
+        inviter: { fullName: req.user.fullName }
+    });
+
     res.json(updatedRoom);
   } catch (err) {
     console.error("Error inviting user to room:", err);
