@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import toast, { Toaster } from 'react-hot-toast';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
@@ -20,6 +20,7 @@ const App = () => {
     const { theme } = useThemeStore();
     const { socket, connect, disconnect } = useSocketStore();
     const navigate = useNavigate();
+    const prevAuthUser = useRef(authUser);
 
   useEffect(() => {
     // checkAuth only needs to run once on component mount
@@ -35,6 +36,16 @@ const App = () => {
     };
   }, [authUser, connect, disconnect]);
 
+  
+  useEffect(() => {
+    // This effect detects when the user logs out (authUser changes from an object to null)
+    // and redirects them to the signup page.
+    if (prevAuthUser.current && !authUser) {
+      navigate("/signup");
+    }
+    prevAuthUser.current = authUser;
+  }, [authUser, navigate]);
+  
   useEffect(() => {
     if (socket) {
       socket.on('room-invite', ({ room, inviter }) => {
