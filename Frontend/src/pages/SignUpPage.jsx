@@ -4,17 +4,19 @@ import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../store/useAuthStore";
 import { useTranslation } from "react-i18next";
+import api from "../api/api";
 
 const SignUpPage = () => {
   const { signup, isSigningUp, authUser } = useAuthStore();
   const { t } = useTranslation();
   const [inputs, setInputs] = useState({
     fullName: "",
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
     gender: "",
-    language: "en",
+    language: "en", // Default language
   });
   const navigate = window.reactRouterNavigate || ((url) => window.location.assign(url));
 
@@ -33,6 +35,7 @@ const SignUpPage = () => {
 
     // --- Validation ---
     if (!inputs.fullName.trim()) return toast.error(t('fullName') + ' ' + t('isRequired'));
+    if (!inputs.username.trim()) return toast.error(t('username', 'Username') + ' ' + t('isRequired'));
     if (!inputs.email.trim()) return toast.error(t('email') + ' ' + t('isRequired'));
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inputs.email);
     if (!emailOk) return toast.error(t('enterEmail'));
@@ -50,6 +53,7 @@ const SignUpPage = () => {
     try {
       await signup({
         fullName: inputs.fullName,
+        username: inputs.username,
         email: inputs.email,
         password: inputs.password,
         gender: inputs.gender,
@@ -75,6 +79,19 @@ const SignUpPage = () => {
               value={inputs.fullName}
               onChange={handleChange}
               placeholder={t('enterName')}
+              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
+              required
+            />
+          </div>
+          {/* Username */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{t('username', 'Username')}</label>
+            <input
+              type="text"
+              name="username"
+              value={inputs.username}
+              onChange={handleChange}
+              placeholder={t('enterUsername', 'Enter username')}
               className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
             />

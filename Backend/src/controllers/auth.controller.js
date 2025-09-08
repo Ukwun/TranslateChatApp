@@ -13,25 +13,25 @@ cloudinary.config({
 
 // Signup Controller
 export const signup = async (req, res) => {
-  const { fullName, email, password, gender, language } = req.body;
-
   try {
+    const { fullName, username, email, password, gender, language } = req.body;
 
-    if(!fullName || !email || !password || !gender || !language) {
+    if (!fullName || !username || !email || !password || !gender || !language) {
       return res.status(400).json({ message: "All fields are required" });
     }
     
     // validate password length
     if (!password || password.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "Password must be at least 6 characters" });
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
     // check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ $or: [{ email }, { username }] });
     if (userExists) {
-      return res.status(400).json({ message: "Email already exists" });
+      if (userExists.email === email) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+      return res.status(400).json({ message: "Username already exists" });
     }
 
     // hash password
@@ -41,23 +41,32 @@ export const signup = async (req, res) => {
     // create user
     const newUser = new User({
       fullName,
+      username,
       email,
       password: hashedPassword,
       gender,
       language,
     });
 
-        if (newUser) {
-            // ... (generate token and save user)
+    if (newUser) {
+      const token = generateToken(newUser._id, res);
+      await newUser.save();
 
-            await newUser.save();
-            // ... (send response)
-        } else {
-            res.status(400).json({ message: "Invalid user data" });
-        }
-    } catch (error) {
-        // ... (error handling)
+      res.status(201).json({
+        _id: newUser._id,
+        fullName: newUser.fullName,
+        username: newUser.username,
+        email: newUser.email,
+        profilePic: newUser.profilePic,
+        token: token,
+      });
+    } else {
+      res.status(400).json({ message: "Invalid user data" });
     }
+  } catch (error) {
+    console.error("Error in signup controller:", error.message);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
 };
 
 // Login Controller
@@ -105,6 +114,7 @@ export const login = async (req, res) => {
 		res.status(200).json({
 			_id: user._id,
 			fullName: user.fullName,
+      username: user.username,
 			email: user.email,
 			profilePic: user.profilePic,
 			token: token,
@@ -130,7 +140,7 @@ export const logout = async (req, res) => {
 // Add this new function and export it
 export const updateProfile = async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { fullName, username, email, password } = req.body;
     const userId = req.user._id;
 
     const user = await User.findById(userId);
@@ -162,6 +172,7 @@ export const updateProfile = async (req, res) => {
     }
 
     user.fullName = fullName || user.fullName;
+    user.username = username || user.username;
     user.email = email || user.email;
 
     await user.save();
@@ -170,6 +181,7 @@ export const updateProfile = async (req, res) => {
     res.status(200).json({
       _id: user._id,
       fullName: user.fullName,
+      username: user.username,
       email: user.email,
       profilePic: user.profilePic,
     });

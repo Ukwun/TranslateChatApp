@@ -37,9 +37,11 @@ signup: async (inputs) => {
     // Explicitly create the payload to ensure no extra fields are sent
 	const payload = {
 		fullName: inputs.fullName,
+		username: inputs.username,
 		email: inputs.email,
 		password: inputs.password,
 		gender: inputs.gender,
+		language: inputs.language,
 	};
   console.log("Attempting to sign up with payload:", payload); // For debugging
   try {
