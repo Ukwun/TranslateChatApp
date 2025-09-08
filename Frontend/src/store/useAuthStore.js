@@ -107,6 +107,8 @@ signup: async (inputs) => {
 			localStorage.removeItem("chat-user-token");
 			set({ authUser: null });
 			toast.success("Logged out successfully!", { id: toastId });
+			// Force a redirect to the signup page after state has been cleared.
+			window.location.href = "/signup";
 		} catch (error) {
 			const errorMessage = error.response?.data?.message || error.message || "Logout failed";
 			toast.error(errorMessage, { id: toastId });

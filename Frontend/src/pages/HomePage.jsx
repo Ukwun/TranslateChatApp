@@ -1,6 +1,8 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
+    const navigate = useNavigate();
+
   return (
     <div className='flex items-center justify-center h-full w-full p-4'>
       <div className='w-full max-w-md'>
@@ -20,12 +22,11 @@ const HomePage = () => {
             >
               Sign In
             </Link>
-            <Link
-              to='/signup'
+            <button
               className='w-1/2 rounded-lg border border-gray-400 py-2 px-4 text-center font-semibold text-gray-200 transition-colors hover:bg-gray-200 hover:text-black'
             >
               Sign Up
-            </Link>
+            </button>
           </div>
         </div>
       </div>
