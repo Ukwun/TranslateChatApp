@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../store/useAuthStore";
 import { useTranslation } from "react-i18next";
@@ -18,13 +18,13 @@ const SignUpPage = () => {
     gender: "",
     language: "en", // Default language
   });
-  const navigate = window.reactRouterNavigate || ((url) => window.location.assign(url));
+  const navigate = useNavigate();
 
   React.useEffect(() => {
     if (authUser && authUser._id) {
       navigate("/profile");
     }
-  }, [authUser]);
+  }, [authUser, navigate]);
 
   const handleChange = (e) => {
     setInputs((prev) => ({ ...prev, [e.target.name]: e.target.value }));
