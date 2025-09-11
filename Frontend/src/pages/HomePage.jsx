@@ -1,7 +1,15 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from "react-router-dom";
+import { useAuthStore } from "../store/useAuthStore";
 
 const HomePage = () => {
-    const navigate = useNavigate();
+	const { authUser, logout } = useAuthStore();
+
+	const handleSignUpClick = (e) => {
+		if (authUser) {
+			e.preventDefault();
+			logout(); // This will now handle the redirect to /signup
+		}
+	};
 
   return (
     <div className='flex items-center justify-center h-full w-full p-4'>
@@ -24,6 +32,7 @@ const HomePage = () => {
             </Link>
             <Link
               to='/signup'
+              onClick={handleSignUpClick}
               className='w-1/2 rounded-lg border border-gray-400 py-2 px-4 text-center font-semibold text-gray-200 transition-colors hover:bg-gray-200 hover:text-black'
             >
               Sign Up

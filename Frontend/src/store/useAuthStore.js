@@ -93,19 +93,20 @@ signup: async (payload) => {
 		set({ isLoggingOut: true });
 		const toastId = toast.loading("Logging out...");
 		try {
+			// Try to log out from the server.
 			await api.post("/auth/logout");
+			toast.success("Logged out successfully!", { id: toastId });
+		} catch (error) {
+			// Even if server logout fails, proceed with client-side logout.
+			const errorMessage = error.response?.data?.message || "Logout failed on server";
+			toast.error(errorMessage, { id: toastId });
+		} finally {
+			// Clear user data from client-side storage and state.
 			localStorage.removeItem("chat-user");
 			localStorage.removeItem("chat-user-token");
-			set({ authUser: null });
-			toast.success("Logged out successfully!", { id: toastId });
-			// Force a redirect to the signup page after state has been cleared.
+			set({ authUser: null, isLoggingOut: false });
+			// Redirect to the signup page. This is a hard redirect.
 			window.location.href = "/signup";
-		} catch (error) {
-			const errorMessage = error.response?.data?.message || error.message || "Logout failed";
-			toast.error(errorMessage, { id: toastId });
-			throw error; // Re-throw the error so the component can catch it if needed
-		} finally {
-			set({ isLoggingOut: false });
 		}
 	},
 
