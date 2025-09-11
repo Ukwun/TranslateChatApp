@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../store/useAuthStore";
 import api from "../api/api.js";
@@ -61,6 +61,12 @@ function LoginPage() {
             {isLoggingIn ? <span className='loading loading-spinner loading-xs'></span> : t('login')}
           </button>
         </form>
+        <p className='mt-6 text-center text-sm text-gray-400'>
+          Don't have an account?{" "}
+          <Link to='/signup' className='font-medium text-indigo-400 hover:text-indigo-300'>
+            {t('signup')}
+          </Link>
+        </p>
       </div>
     </div>
   );
