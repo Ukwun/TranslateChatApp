@@ -104,7 +104,9 @@ signup: async (payload) => {
 			// Clear user data from client-side storage and state, but don't redirect.
 			localStorage.removeItem("chat-user");
 			localStorage.removeItem("chat-user-token");
-			set({ authUser: null, isLoggingOut: false });
+			set({ authUser: null });
+			// Hard redirect to the signup page to avoid race conditions with protected routes.
+			window.location.assign("/signup");
 		}
 	},
 

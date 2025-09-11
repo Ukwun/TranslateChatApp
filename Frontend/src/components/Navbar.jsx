@@ -7,13 +7,11 @@ import { useTranslation } from "react-i18next";
 
 const Navbar = () => {
 	const { authUser, logout } = useAuthStore();
-	const navigate = useNavigate();
 	const { t } = useTranslation();
 
 	const handleLogout = useCallback(async () => {
 		await logout();
-		navigate("/signup");
-	}, [logout, navigate]);
+	}, [logout]);
 
 		// Language switcher logic
 		const [lang, setLang] = React.useState(localStorage.getItem('lang') || 'en');
