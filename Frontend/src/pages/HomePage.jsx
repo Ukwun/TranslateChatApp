@@ -1,13 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 
 const HomePage = () => {
 	const { authUser, logout } = useAuthStore();
+	const navigate = useNavigate();
 
-	const handleSignUpClick = (e) => {
+	const handleSignUpClick = async (e) => {
 		if (authUser) {
 			e.preventDefault();
-			logout(); // This will now handle the redirect to /signup
+			await logout();
+			navigate("/signup");
 		}
 	};
 

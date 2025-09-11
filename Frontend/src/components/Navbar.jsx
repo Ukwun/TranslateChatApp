@@ -1,22 +1,19 @@
 
 import React, { useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const Navbar = () => {
 	const { authUser, logout } = useAuthStore();
+	const navigate = useNavigate();
 	const { t } = useTranslation();
 
 	const handleLogout = useCallback(async () => {
-		try {
-			await logout();
-		} catch (error) {
-			// The store action will show a toast on error.
-			console.error("Logout failed from component", error);
-		}
-	}, [logout]);
+		await logout();
+		navigate("/signup");
+	}, [logout, navigate]);
 
 		// Language switcher logic
 		const [lang, setLang] = React.useState(localStorage.getItem('lang') || 'en');
