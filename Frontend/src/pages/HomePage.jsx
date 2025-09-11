@@ -22,11 +22,12 @@ const HomePage = () => {
             >
               Sign In
             </Link>
-            <button
+            <Link
+              to='/signup'
               className='w-1/2 rounded-lg border border-gray-400 py-2 px-4 text-center font-semibold text-gray-200 transition-colors hover:bg-gray-200 hover:text-black'
             >
               Sign Up
-            </button>
+            </Link>
           </div>
         </div>
       </div>

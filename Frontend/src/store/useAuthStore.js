@@ -31,18 +31,9 @@ export const useAuthStore = create((set) => ({
 		onlineUsers: [],
 
 		// Action to sign up a new user
-signup: async (inputs) => {
+signup: async (payload) => {
   set({ isSigningUp: true });
   const toastId = toast.loading("Creating account...");
-    // Explicitly create the payload to ensure no extra fields are sent
-	const payload = {
-		fullName: inputs.fullName,
-		username: inputs.username,
-		email: inputs.email,
-		password: inputs.password,
-		gender: inputs.gender,
-		language: inputs.language,
-	};
   console.log("Attempting to sign up with payload:", payload); // For debugging
   try {
 	const res = await api.post("/auth/signup", payload);

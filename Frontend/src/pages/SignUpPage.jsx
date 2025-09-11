@@ -51,15 +51,9 @@ const SignUpPage = () => {
       return toast.error(t('selectGender'));
     }
     try {
-      await signup({
-        fullName: inputs.fullName,
-        username: inputs.username,
-        email: inputs.email,
-        password: inputs.password,
-        gender: inputs.gender,
-        language: inputs.language,
-      });
-      // Navigation will happen in useEffect above
+      // Pass all inputs except for confirmPassword to the signup action
+      const { confirmPassword, ...signupData } = inputs;
+      await signup(signupData);
     } catch (error) {
       console.error("Signup failed in component:", error);
     }
