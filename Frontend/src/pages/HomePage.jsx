@@ -3,11 +3,13 @@ import { useAuthStore } from "../store/useAuthStore";
 
 const HomePage = () => {
 	const { authUser, logout } = useAuthStore();
+	const navigate = useNavigate();
 
 	const handleSignUpClick = async (e) => {
 		if (authUser) {
 			e.preventDefault();
 			await logout();
+			navigate("/signup");
 		}
 	};
 

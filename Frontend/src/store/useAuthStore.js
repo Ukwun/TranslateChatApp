@@ -101,12 +101,11 @@ signup: async (payload) => {
 			const errorMessage = error.response?.data?.message || "Logout failed on the server";
 			toast.error(errorMessage, { id: toastId });
 		} finally {
-			// Clear user data from client-side storage and state, but don't redirect.
+			// Clear user data from client-side storage and state.
 			localStorage.removeItem("chat-user");
 			localStorage.removeItem("chat-user-token");
-			set({ authUser: null });
-			// Hard redirect to the signup page to avoid race conditions with protected routes.
-			window.location.assign("/signup");
+			set({ authUser: null, isLoggingOut: false });
+			// Navigation is now handled by the component that calls logout.
 		}
 	},
 

@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema(
   {
@@ -10,7 +10,10 @@ const messageSchema = new mongoose.Schema(
     receiverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+    },
+    roomId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ChatRoom",
     },
     text: {
       type: String,
@@ -23,7 +26,7 @@ const messageSchema = new mongoose.Schema(
     },
     translatedText: {
       type: String,
-    }
+    },
   },
   { timestamps: true }
 );

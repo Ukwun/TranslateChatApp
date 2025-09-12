@@ -6,15 +6,20 @@ const conversationSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+        required: true,
       },
     ],
     messages: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Message",
-        default: [],
       },
     ],
+    room: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ChatRoom",
+      default: null,
+    },
   },
   { timestamps: true }
 );
